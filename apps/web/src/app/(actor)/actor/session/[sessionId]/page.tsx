@@ -1,4 +1,10 @@
-"use client";
-export default function ActorSessionPage() {
-  return <div className="p-8">Actor in-session — coming in M9</div>;
+import { ActorSessionRoom } from "./ActorSessionRoom";
+
+type Props = {
+  params: Promise<{ sessionId: string }>;
+};
+
+export default async function ActorSessionPage({ params }: Props) {
+  const { sessionId } = await params;
+  return <ActorSessionRoom sessionId={sessionId} />;
 }
