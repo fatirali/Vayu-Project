@@ -9,7 +9,11 @@
       "WebFetch(domain:claude.ai)",
       "Bash(npm install *)",
       "Bash(pnpm --version)",
-      "Bash(pnpm --filter @rehearse/web exec next build)"
+      "Bash(pnpm --filter @rehearse/web exec next build)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(pnpm *)",
+      "Bash(ls *)"
     ]
   }
 }
