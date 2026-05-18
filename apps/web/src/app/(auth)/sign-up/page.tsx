@@ -114,7 +114,7 @@ export default function SignUpPage() {
             Application received
           </h1>
           <p className="text-sm text-[var(--color-ink-3)] mb-4">
-            We'll review your application and email you within 2 business days.
+            We&apos;ll review your application and email you within 2 business days.
           </p>
           <Link
             href="/sign-in"

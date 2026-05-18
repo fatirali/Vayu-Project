@@ -124,9 +124,7 @@ export default async function ActorDashboardPage() {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function SessionCard({ session }: { session: any }) {
   const scheduled = new Date(session.scheduled_at);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const scenario = Array.isArray(session.scenarios) ? session.scenarios[0] : session.scenarios;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const learner = Array.isArray(session.learner) ? session.learner[0] : session.learner;
 
   const isLive = session.status === "live";

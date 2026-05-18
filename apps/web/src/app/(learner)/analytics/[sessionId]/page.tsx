@@ -65,7 +65,7 @@ export default async function AnalyticsPage({ params }: Props) {
   const topicCoverage: any[] = Array.isArray(session.topic_coverage) ? session.topic_coverage : [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const transcriptLines: any[] = Array.isArray(session.transcript_lines)
-    ? session.transcript_lines.sort((a: any, b: any) => a.timestamp.localeCompare(b.timestamp))
+    ? session.transcript_lines.sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp)))
     : [];
 
   // Not ready yet
