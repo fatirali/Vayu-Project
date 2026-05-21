@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@theme {
+  /* ── Colours ── */
+  --color-bg: #F7F7F5;
+  --color-paper: #FBFBF9;
+
+  --color-ink: #111114;
+  --color-ink-2: #2A2A30;
+  --color-ink-3: #55555E;
+  --color-ink-4: #8A8A92;
+
+  --color-line: #D8D8D2;
+  --color-line-2: #E6E6E0;
+  --color-chip: #ECECE5;
+
+  /* Learner accent — Linear indigo */
+  --color-accent: #5E6AD2;
+  --color-accent-2: #EAEBFA;
+
+  /* Semantic */
+  --color-good: #3A7D4E;
+  --color-good-2: #EAF4EE;
+  --color-warn: #B06A1E;
+  --color-warn-2: #FDF3E7;
+  --color-bad: #A23A3A;
+  --color-bad-2: #FAECEC;
+
+  /* Actor portal — purple */
+  --color-actor: #7C5CBF;
+  --color-actor-2: #F1EDFA;
+
+  /* Payments / Ops — Stripe blue */
+  --color-stripe: #635BFF;
+  --color-stripe-2: #EEEDFF;
+
+  /* L&D Studio — teal */
+  --color-ld: #1F7A6B;
+  --color-ld-2: #E8F2EF;
+
+  /* ── Typography ── */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* ── Radius ── */
+  --radius: 6px;
+  --radius-lg: 10px;
+  --radius-auth: 8px;
+  --radius-auth-lg: 12px;
+}
+
+/* ── Portal accent CSS custom properties ── */
+/* Each portal layout sets data-portal on the AppShell root */
+[data-portal="learner"] { --portal-accent: var(--color-accent); --portal-accent-2: var(--color-accent-2); }
+[data-portal="actor"]   { --portal-accent: var(--color-actor);  --portal-accent-2: var(--color-actor-2); }
+[data-portal="studio"]  { --portal-accent: var(--color-ld);     --portal-accent-2: var(--color-ld-2); }
+[data-portal="ops"]     { --portal-accent: var(--color-stripe); --portal-accent-2: var(--color-stripe-2); }
+
+/* ── Base ── */
+html {
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Subtle grid background matching wireframes */
+body {
+  background-image:
+    linear-gradient(var(--color-line-2) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-line-2) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-color: var(--color-bg);
+  min-height: 100vh;
+}

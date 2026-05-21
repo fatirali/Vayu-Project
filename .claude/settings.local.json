@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh auth *)",
+      "Bash(git checkout *)",
+      "Bash(git rebase *)",
+      "Bash(git push *)",
+      "Bash(git stash *)",
+      "WebFetch(domain:claude.ai)",
+      "Bash(npm install *)",
+      "Bash(pnpm --version)",
+      "Bash(pnpm --filter @rehearse/web exec next build)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(pnpm *)",
+      "Bash(ls *)"
+    ]
+  }
+}
