@@ -46,6 +46,7 @@ export function CalEmbedPanel({
         // Passed through to Cal.com webhook metadata so we can create the session
         "metadata[scenarioId]": scenarioId,
         "metadata[learnerId]": learnerId,
+        "metadata[actorId]": selectedActor.id,
       }).toString()
     : null;
 

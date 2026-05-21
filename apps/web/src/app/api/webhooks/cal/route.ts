@@ -31,41 +31,27 @@ export async function POST(req: Request) {
     const metadata = (payload["metadata"] ?? {}) as Record<string, string>;
     const scenarioId = metadata["scenarioId"];
     const learnerId = metadata["learnerId"];
+    const actorId = metadata["actorId"];
     const calBookingUid = payload["uid"] as string | undefined;
     const scheduledAt = payload["startTime"] as string | undefined;
     const endTime = payload["endTime"] as string | undefined;
-    const organizer = (payload["organizer"] ?? {}) as Record<string, string>;
-    const organizerEmail = organizer["email"];
 
-    if (!scenarioId || !learnerId || !scheduledAt || !organizerEmail) {
+    if (!scenarioId || !learnerId || !actorId || !scheduledAt) {
       // Log missing fields but return 200 so Cal.com doesn't retry forever
       console.error("[cal webhook] Missing required fields", {
-        scenarioId, learnerId, scheduledAt, organizerEmail,
+        scenarioId, learnerId, actorId, scheduledAt,
       });
       return Response.json({ ok: true, warning: "Missing required metadata — session not created" });
     }
 
     // Derive duration from start/end times (seconds)
-    const durationSecs = scheduledAt && endTime
+    const durationSecs = endTime
       ? Math.round((new Date(endTime).getTime() - new Date(scheduledAt).getTime()) / 1000)
       : 1800; // fallback: 30 min
 
-    // Look up actor by organizer email
-    const { data: actor } = await supabase
-      .from("users")
-      .select("id")
-      .eq("email", organizerEmail)
-      .eq("role", "actor")
-      .maybeSingle();
-
-    if (!actor) {
-      console.error("[cal webhook] Actor not found for email:", organizerEmail);
-      return Response.json({ ok: true, warning: "Actor not found — session not created" });
-    }
-
     const { error } = await supabase.from("sessions").insert({
       learner_id: learnerId,
-      actor_id: actor.id,
+      actor_id: actorId,
       scenario_id: scenarioId,
       scheduled_at: scheduledAt,
       duration: durationSecs,
