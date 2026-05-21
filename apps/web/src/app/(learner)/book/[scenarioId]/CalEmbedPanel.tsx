@@ -22,8 +22,10 @@ type Props = {
 
 export function CalEmbedPanel({
   actors,
+  learnerId,
   learnerEmail,
   learnerName,
+  scenarioId,
   scenarioTitle,
 }: Props) {
   const [selectedActorId, setSelectedActorId] = useState<string | null>(
@@ -41,6 +43,9 @@ export function CalEmbedPanel({
         email: learnerEmail,
         notes: `Rehearse session — ${scenarioTitle}`,
         embed: "true",
+        // Passed through to Cal.com webhook metadata so we can create the session
+        "metadata[scenarioId]": scenarioId,
+        "metadata[learnerId]": learnerId,
       }).toString()
     : null;
 
@@ -116,6 +121,18 @@ export function CalEmbedPanel({
                 <p className="text-xs text-[var(--color-ink-4)]">
                   Actors are being certified for this scenario.
                   Check back soon.
+                </p>
+              </>
+            ) : selectedActor && !selectedActor.calComUsername ? (
+              <>
+                <div className="w-10 h-10 rounded-full bg-[var(--color-chip)] flex items-center justify-center mb-3">
+                  <CalendarIcon />
+                </div>
+                <p className="text-sm font-medium text-[var(--color-ink)] mb-1">
+                  Calendar not configured
+                </p>
+                <p className="text-xs text-[var(--color-ink-4)]">
+                  {selectedActor.firstName} hasn&apos;t connected their Cal.com account yet.
                 </p>
               </>
             ) : (

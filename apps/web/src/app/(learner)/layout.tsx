@@ -10,6 +10,12 @@ const NAV_ITEMS: NavItem[] = [
     icon: <LibraryIcon />,
   },
   {
+    id: "sessions",
+    label: "My Sessions",
+    href: "/my-sessions",
+    icon: <SessionsIcon />,
+  },
+  {
     id: "progress",
     label: "My Progress",
     href: "/progress",
@@ -33,6 +39,15 @@ export default async function LearnerLayout({
     >
       {children}
     </AppShell>
+  );
+}
+
+function SessionsIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="1.5" y="1.5" width="12" height="12" rx="1.5" />
+      <path d="M5 5.5h5M5 7.5h5M5 9.5h3" strokeLinecap="round" />
+    </svg>
   );
 }
 

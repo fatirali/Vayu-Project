@@ -326,3 +326,11 @@ CREATE TABLE audit_log (
 
 CREATE INDEX idx_audit_log_action ON audit_log(action);
 CREATE INDEX idx_audit_log_created_at ON audit_log(created_at);
+
+-- ── Role privileges ──────────────────────────────────────────────────────────
+-- Grant base privileges to authenticated role. RLS policies (migration 002)
+-- handle row-level access control; this just lets the role execute operations.
+
+GRANT USAGE ON SCHEMA public TO authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;

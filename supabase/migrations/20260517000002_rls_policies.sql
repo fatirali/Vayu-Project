@@ -62,6 +62,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
@@ -79,6 +80,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS enforce_audit_log_immutability ON audit_log;
 CREATE TRIGGER enforce_audit_log_immutability
   BEFORE UPDATE OR DELETE ON audit_log
   FOR EACH ROW EXECUTE FUNCTION prevent_audit_log_mutation();
@@ -95,6 +97,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS set_scenarios_updated_at ON scenarios;
 CREATE TRIGGER set_scenarios_updated_at
   BEFORE UPDATE ON scenarios
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
@@ -125,6 +128,20 @@ ALTER TABLE payouts              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE session_payments     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_log            ENABLE ROW LEVEL SECURITY;
 
+-- ── Drop all existing policies (safe re-run) ─────────────────────────────────
+DO $$
+DECLARE
+  r RECORD;
+BEGIN
+  FOR r IN (
+    SELECT policyname, tablename
+    FROM pg_policies
+    WHERE schemaname = 'public'
+  ) LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', r.policyname, r.tablename);
+  END LOOP;
+END $$;
+
 -- ── users policies ───────────────────────────────────────────────────────────
 
 -- Every authenticated user can read their own row
@@ -147,6 +164,11 @@ CREATE POLICY "users: update own" ON users
 CREATE POLICY "users: ops_admin update any" ON users
   FOR UPDATE TO authenticated
   USING (auth_user_role() = 'ops_admin');
+
+-- Learners can read basic profile of approved actors (for booking page actor cards)
+CREATE POLICY "users: learner read approved actors" ON users
+  FOR SELECT TO authenticated
+  USING (role = 'actor' AND approved_at IS NOT NULL);
 
 -- Service role can insert (handle_new_user trigger runs as SECURITY DEFINER)
 CREATE POLICY "users: service insert" ON users

@@ -86,7 +86,7 @@ export default async function LibraryPage({
     query = query.eq("category", category);
   }
 
-  const { data: scenarios = [] } = await query;
+  const { data: scenarios, error: scenariosError } = await query;
 
   const activeCategory = category ?? "all";
 
@@ -95,6 +95,12 @@ export default async function LibraryPage({
       <header className="flex items-center px-6 h-14 border-b border-[var(--color-line)] bg-[var(--color-paper)] shrink-0">
         <TopBar breadcrumbs={[{ label: "Library" }]} />
       </header>
+
+      {scenariosError && (
+        <div className="mx-6 mt-4 px-4 py-3 bg-[var(--color-bad-2)] border border-[var(--color-bad)] rounded-[var(--radius)] text-xs text-[var(--color-bad)]">
+          <strong>Query error:</strong> {scenariosError.message} (code: {scenariosError.code})
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto px-6 py-6">
         {/* Filter chips */}
