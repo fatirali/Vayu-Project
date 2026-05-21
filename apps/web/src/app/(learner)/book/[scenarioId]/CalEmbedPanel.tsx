@@ -36,6 +36,8 @@ export function CalEmbedPanel({
 
   // Cal.com embed URL for the actor's calendar
   // Passes learner name, email, and scenario title as pre-fill params
+  // Build Cal.com URL with literal brackets for metadata params.
+  // URLSearchParams encodes [ ] as %5B %5D which Cal.com won't parse as metadata.
   const calUrl = selectedActor?.calComUsername
     ? `https://cal.com/${selectedActor.calComUsername}?` +
       new URLSearchParams({
@@ -43,10 +45,10 @@ export function CalEmbedPanel({
         email: learnerEmail,
         notes: `Rehearse session — ${scenarioTitle}`,
         embed: "true",
-        // Passed through to Cal.com webhook metadata so we can create the session
-        "metadata[scenarioId]": scenarioId,
-        "metadata[learnerId]": learnerId,
-      }).toString()
+      }).toString() +
+      `&metadata[scenarioId]=${encodeURIComponent(scenarioId)}` +
+      `&metadata[learnerId]=${encodeURIComponent(learnerId)}` +
+      `&metadata[actorId]=${encodeURIComponent(selectedActor.id)}`
     : null;
 
   return (
