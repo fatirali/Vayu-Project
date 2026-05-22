@@ -1,13 +1,20 @@
 import { task, logger } from "@trigger.dev/sdk/v3";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
+import ws from "ws";
 
 // ── Supabase service client (no cookies in background task) ─────────────────
 
 function getServiceClient() {
   return createClient(
     process.env["NEXT_PUBLIC_SUPABASE_URL"]!,
-    process.env["SUPABASE_SERVICE_ROLE_KEY"]!
+    process.env["SUPABASE_SERVICE_ROLE_KEY"]!,
+    {
+      // Node <22 has no native WebSocket — provide the ws package so the
+      // Supabase realtime client can initialise without throwing.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      realtime: { transport: ws as any },
+    }
   );
 }
 
