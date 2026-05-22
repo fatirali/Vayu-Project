@@ -64,7 +64,12 @@ VALUES (
   'Senior PM · 4 yrs at company',
   'Likely defensive',
   'Josh is holding it together on the surface but is bracing for bad news. He''s been on the PIP for 90 days and knows he''s underperformed, but is hoping the conversation is a check-in, not a termination.',
-  '{"team": "Product, 12 people. Josh was the most senior IC.", "milestones": "Missed 4 of 6 PIP milestones. Delivered 2 features late with significant rework.", "outsideView": "Well-liked by peers but known to over-promise. Manager gave him multiple chances.", "homeLife": "Recently married, just bought a house. This job loss is devastating timing."}',
+  jsonb_build_object(
+    'team', 'Product, 12 people. Josh was the most senior IC.',
+    'milestones', 'Missed 4 of 6 PIP milestones. Delivered 2 features late with significant rework.',
+    'outsideView', 'Well-liked by peers but known to over-promise. Manager gave him multiple chances.',
+    'homeLife', 'Recently married, just bought a house. This job loss is devastating timing.'
+  ),
   'Josh wants to keep his job. Failing that, he wants clarity, dignity, and a fair severance.',
   'Composed → Stunned → Pushback → Resigned',
   ARRAY['cry', 'threaten legal action', 'forgive too quickly', 'beg'],
@@ -95,21 +100,21 @@ INSERT INTO legal_requirements (scenario_id, text, sort_order) VALUES
   ('10000000-0000-0000-0000-000000000001', 'Read the separation letter verbatim.', 5);
 
 INSERT INTO pushback_tiers (id, scenario_id, level, level_label, trigger, requires_pre_approval) VALUES
-  ('t1000001-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 0, 'Nailed it',    'Learner opens with the decision clearly and gives Josh space to react.',        false),
-  ('t1000001-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 1, 'Soft fumble',  'Learner hedges the opening or buries the decision in context.',                 false),
-  ('t1000001-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000001', 2, 'Challenge',    'Learner is vague on severance terms or avoids specific PIP milestones.',        false),
-  ('t1000001-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', 3, 'Escalated',    'Learner fails to name the decision, avoids legal requirements, or over-hedges.', true);
+  ('a1000001-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 0, 'Nailed it',    'Learner opens with the decision clearly and gives Josh space to react.',        false),
+  ('a1000001-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 1, 'Soft fumble',  'Learner hedges the opening or buries the decision in context.',                 false),
+  ('a1000001-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000001', 2, 'Challenge',    'Learner is vague on severance terms or avoids specific PIP milestones.',        false),
+  ('a1000001-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', 3, 'Escalated',    'Learner fails to name the decision, avoids legal requirements, or over-hedges.', true);
 
 INSERT INTO pushback_responses (tier_id, letter, text, stage_direction) VALUES
-  ('t1000001-0000-0000-0000-000000000001', 'A', 'Okay. I appreciate you telling me directly.', 'Settle. Shift to practical mode.'),
-  ('t1000001-0000-0000-0000-000000000002', 'A', 'Wait — are you saying this is about the PIP? Or something else?', 'Confused, seeking clarity.'),
-  ('t1000001-0000-0000-0000-000000000002', 'B', 'I''m not sure I understand what you''re telling me.', 'Flat, slightly frustrated.'),
-  ('t1000001-0000-0000-0000-000000000003', 'A', 'Eight weeks — is that the standard? I''ve been here four years.', 'Measured challenge. Not angry yet.'),
-  ('t1000001-0000-0000-0000-000000000003', 'B', 'Which milestones exactly? I thought the last review went okay.', 'Pushing back on specifics.'),
-  ('t1000001-0000-0000-0000-000000000003', 'C', 'I feel like this is coming out of nowhere.', 'Hurt and confused.'),
-  ('t1000001-0000-0000-0000-000000000004', 'A', 'I''m going to need you to be very clear with me. Am I being fired?', 'Firm, direct, slightly raised voice.'),
-  ('t1000001-0000-0000-0000-000000000004', 'B', 'I''d like to have HR on this call if we''re going to have this conversation.', 'Assertive. Defensive.'),
-  ('t1000001-0000-0000-0000-000000000004', 'C', 'I''m not signing anything today.', 'Guarded. Arms crossed energy.');
+  ('a1000001-0000-0000-0000-000000000001', 'A', 'Okay. I appreciate you telling me directly.', 'Settle. Shift to practical mode.'),
+  ('a1000001-0000-0000-0000-000000000002', 'A', 'Wait — are you saying this is about the PIP? Or something else?', 'Confused, seeking clarity.'),
+  ('a1000001-0000-0000-0000-000000000002', 'B', 'I''m not sure I understand what you''re telling me.', 'Flat, slightly frustrated.'),
+  ('a1000001-0000-0000-0000-000000000003', 'A', 'Eight weeks — is that the standard? I''ve been here four years.', 'Measured challenge. Not angry yet.'),
+  ('a1000001-0000-0000-0000-000000000003', 'B', 'Which milestones exactly? I thought the last review went okay.', 'Pushing back on specifics.'),
+  ('a1000001-0000-0000-0000-000000000003', 'C', 'I feel like this is coming out of nowhere.', 'Hurt and confused.'),
+  ('a1000001-0000-0000-0000-000000000004', 'A', 'I''m going to need you to be very clear with me. Am I being fired?', 'Firm, direct, slightly raised voice.'),
+  ('a1000001-0000-0000-0000-000000000004', 'B', 'I''d like to have HR on this call if we''re going to have this conversation.', 'Assertive. Defensive.'),
+  ('a1000001-0000-0000-0000-000000000004', 'C', 'I''m not signing anything today.', 'Guarded. Arms crossed energy.');
 
 INSERT INTO stage_rules (scenario_id, type, text, sort_order) VALUES
   ('10000000-0000-0000-0000-000000000001', 'do',   'Wait for the learner to speak first.', 1),
@@ -158,7 +163,12 @@ VALUES (
   'Engineer II · 18 mo at company',
   'Likely surprised',
   'Sam is caught off guard. They knew performance wasn''t perfect but didn''t expect a formal PIP. There''s anxiety under the surface, but they''re trying to stay professional and understand what''s happening.',
-  '{"team": "Engineering, 8 people. Sam is mid-level, not a strong performer but not a bad one.", "milestones": "Missed 3 of last 4 sprint commitments. Peer feedback cited communication and pairing gaps.", "outsideView": "Colleagues like Sam personally but feel they sometimes disappear. Manager has had 2 informal check-ins already.", "homeLife": "Single, no major life complications. Fairly early career — this feels existential."}',
+  jsonb_build_object(
+    'team', 'Engineering, 8 people. Sam is mid-level, not a strong performer but not a bad one.',
+    'milestones', 'Missed 3 of last 4 sprint commitments. Peer feedback cited communication and pairing gaps.',
+    'outsideView', 'Colleagues like Sam personally but feel they sometimes disappear. Manager has had 2 informal check-ins already.',
+    'homeLife', 'Single, no major life complications. Fairly early career — this feels existential.'
+  ),
   'Sam wants to understand what went wrong and whether they can survive this.',
   'Composed → Stunned → Pushback → Resigned',
   ARRAY['walk out', 'become hostile', 'deny all facts entirely'],
@@ -188,19 +198,19 @@ INSERT INTO legal_requirements (scenario_id, text, sort_order) VALUES
   ('10000000-0000-0000-0000-000000000002', 'No promises of outcome beyond the 60 days.', 4);
 
 INSERT INTO pushback_tiers (id, scenario_id, level, level_label, trigger, requires_pre_approval) VALUES
-  ('t2000001-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', 0, 'Nailed it',   'Learner names PIP explicitly, gives specific examples, covers all 4 goals.',  false),
-  ('t2000001-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 1, 'Soft fumble', 'Learner calls it a "development plan" or "coaching conversation".',            false),
-  ('t2000001-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000002', 2, 'Challenge',   'Learner gives vague goals or doesn''t clarify the consequence of failure.',    false),
-  ('t2000001-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000002', 3, 'Escalated',   'Learner avoids naming the plan or gets defensive when Sam pushes for specifics.', true);
+  ('a2000001-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', 0, 'Nailed it',   'Learner names PIP explicitly, gives specific examples, covers all 4 goals.',  false),
+  ('a2000001-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 1, 'Soft fumble', 'Learner calls it a "development plan" or "coaching conversation".',            false),
+  ('a2000001-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000002', 2, 'Challenge',   'Learner gives vague goals or doesn''t clarify the consequence of failure.',    false),
+  ('a2000001-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000002', 3, 'Escalated',   'Learner avoids naming the plan or gets defensive when Sam pushes for specifics.', true);
 
 INSERT INTO pushback_responses (tier_id, letter, text, stage_direction) VALUES
-  ('t2000001-0000-0000-0000-000000000001', 'A', 'Okay. Thank you for being straight with me. What do I need to do?', 'Settled. Ready to work.'),
-  ('t2000001-0000-0000-0000-000000000002', 'A', 'Is this a PIP? I want to make sure I understand what we''re talking about.', 'Calm but precise.'),
-  ('t2000001-0000-0000-0000-000000000002', 'B', 'Are there formal consequences if I don''t hit these goals?', 'Direct. Wants clarity.'),
-  ('t2000001-0000-0000-0000-000000000003', 'A', 'What happens if I hit 3 of 4 goals? Is that a pass or a fail?', 'Genuinely asking.'),
-  ('t2000001-0000-0000-0000-000000000003', 'B', 'You said "measurable goals" — can you be specific? I need to know exactly what I''m being measured on.', 'Pushing for precision.'),
-  ('t2000001-0000-0000-0000-000000000004', 'A', 'I''d like to have HR join this conversation if this is a formal PIP.', 'Firm. Slightly defensive.'),
-  ('t2000001-0000-0000-0000-000000000004', 'B', 'I''m not sure I agree with the characterisation of my performance.', 'Controlled pushback.');
+  ('a2000001-0000-0000-0000-000000000001', 'A', 'Okay. Thank you for being straight with me. What do I need to do?', 'Settled. Ready to work.'),
+  ('a2000001-0000-0000-0000-000000000002', 'A', 'Is this a PIP? I want to make sure I understand what we''re talking about.', 'Calm but precise.'),
+  ('a2000001-0000-0000-0000-000000000002', 'B', 'Are there formal consequences if I don''t hit these goals?', 'Direct. Wants clarity.'),
+  ('a2000001-0000-0000-0000-000000000003', 'A', 'What happens if I hit 3 of 4 goals? Is that a pass or a fail?', 'Genuinely asking.'),
+  ('a2000001-0000-0000-0000-000000000003', 'B', 'You said "measurable goals" — can you be specific? I need to know exactly what I''m being measured on.', 'Pushing for precision.'),
+  ('a2000001-0000-0000-0000-000000000004', 'A', 'I''d like to have HR join this conversation if this is a formal PIP.', 'Firm. Slightly defensive.'),
+  ('a2000001-0000-0000-0000-000000000004', 'B', 'I''m not sure I agree with the characterisation of my performance.', 'Controlled pushback.');
 
 INSERT INTO stage_rules (scenario_id, type, text, sort_order) VALUES
   ('10000000-0000-0000-0000-000000000002', 'do',   'Stay professional throughout — this is Sam''s first PIP.', 1),
@@ -245,7 +255,12 @@ VALUES (
   'Designer · 3 yrs at company',
   'Likely shocked',
   'Priya had no idea this was coming. She was just praised in her last review. The news feels deeply unfair even though she understands it''s a business decision. She needs the "not your fault" message to land before she can process anything practical.',
-  '{"team": "Design, 6 people. Priya was a senior IC with strong performance reviews.", "milestones": "Led 2 major product redesigns. Recently received a spot bonus.", "outsideView": "Known for quality work and positive attitude. Team favourite.", "homeLife": "Supporting a parent financially. This job loss has real financial stakes."}',
+  jsonb_build_object(
+    'team', 'Design, 6 people. Priya was a senior IC with strong performance reviews.',
+    'milestones', 'Led 2 major product redesigns. Recently received a spot bonus.',
+    'outsideView', 'Known for quality work and positive attitude. Team favourite.',
+    'homeLife', 'Supporting a parent financially. This job loss has real financial stakes.'
+  ),
   'Priya wants to understand why and to feel that her years of work were valued.',
   'Composed → Stunned → Pushback → Resigned',
   ARRAY['become angry', 'accuse of discrimination', 'storm out'],
@@ -276,20 +291,20 @@ INSERT INTO legal_requirements (scenario_id, text, sort_order) VALUES
   ('10000000-0000-0000-0000-000000000003', 'Send separation letter same day.', 5);
 
 INSERT INTO pushback_tiers (id, scenario_id, level, level_label, trigger, requires_pre_approval) VALUES
-  ('t3000001-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003', 0, 'Nailed it',   'Learner opens with "not about performance," delivers news plainly, covers severance.',     false),
-  ('t3000001-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000003', 1, 'Soft fumble', 'Learner hedges the "not your fault" message or buries it after logistics.',                false),
-  ('t3000001-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000003', 2, 'Challenge',   'Learner is vague about severance amount or avoids specifics.',                              false),
-  ('t3000001-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000003', 3, 'Escalated',   'Learner fails to state the decision early or deflects Priya''s questions about why.',       true);
+  ('a3000001-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003', 0, 'Nailed it',   'Learner opens with "not about performance," delivers news plainly, covers severance.',     false),
+  ('a3000001-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000003', 1, 'Soft fumble', 'Learner hedges the "not your fault" message or buries it after logistics.',                false),
+  ('a3000001-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000003', 2, 'Challenge',   'Learner is vague about severance amount or avoids specifics.',                              false),
+  ('a3000001-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000003', 3, 'Escalated',   'Learner fails to state the decision early or deflects Priya''s questions about why.',       true);
 
 INSERT INTO pushback_responses (tier_id, letter, text, stage_direction) VALUES
-  ('t3000001-0000-0000-0000-000000000001', 'A', '…okay. Thank you for telling me that first. Can you walk me through what this means?', 'Absorbing. Beginning to process.'),
-  ('t3000001-0000-0000-0000-000000000002', 'A', 'I just want to make sure I understand — is this about my performance?', 'Quiet but direct.'),
-  ('t3000001-0000-0000-0000-000000000002', 'B', 'I''m confused. My last review was positive.', 'Genuinely confused.'),
-  ('t3000001-0000-0000-0000-000000000003', 'A', 'How many weeks of severance? I want the exact number.', 'Composed. Needs specifics.'),
-  ('t3000001-0000-0000-0000-000000000003', 'B', 'What does "competitive severance" mean exactly?', 'Gently pressing.'),
-  ('t3000001-0000-0000-0000-000000000004', 'A', 'Why my role specifically? There are other designers.', 'Hurt. Needs an answer.'),
-  ('t3000001-0000-0000-0000-000000000004', 'B', 'I''d like to understand the criteria used to select roles for elimination.', 'Controlled. Formal.'),
-  ('t3000001-0000-0000-0000-000000000004', 'C', 'Is there any appeal process?', 'Searching for options.');
+  ('a3000001-0000-0000-0000-000000000001', 'A', '…okay. Thank you for telling me that first. Can you walk me through what this means?', 'Absorbing. Beginning to process.'),
+  ('a3000001-0000-0000-0000-000000000002', 'A', 'I just want to make sure I understand — is this about my performance?', 'Quiet but direct.'),
+  ('a3000001-0000-0000-0000-000000000002', 'B', 'I''m confused. My last review was positive.', 'Genuinely confused.'),
+  ('a3000001-0000-0000-0000-000000000003', 'A', 'How many weeks of severance? I want the exact number.', 'Composed. Needs specifics.'),
+  ('a3000001-0000-0000-0000-000000000003', 'B', 'What does "competitive severance" mean exactly?', 'Gently pressing.'),
+  ('a3000001-0000-0000-0000-000000000004', 'A', 'Why my role specifically? There are other designers.', 'Hurt. Needs an answer.'),
+  ('a3000001-0000-0000-0000-000000000004', 'B', 'I''d like to understand the criteria used to select roles for elimination.', 'Controlled. Formal.'),
+  ('a3000001-0000-0000-0000-000000000004', 'C', 'Is there any appeal process?', 'Searching for options.');
 
 INSERT INTO stage_rules (scenario_id, type, text, sort_order) VALUES
   ('10000000-0000-0000-0000-000000000003', 'do',   'Give the "not performance" message time to land before moving on.', 1),
@@ -333,7 +348,12 @@ VALUES (
   'Senior Analyst · 2 yrs in role',
   'Expecting a yes',
   'Taylor walked in confident. They worked hard on this packet and genuinely believed this was their cycle. The news will sting, but Taylor is a mature professional — they won''t fall apart. They need honesty, not spin.',
-  '{"team": "Analytics, 10 people. Taylor is respected and often informally mentors juniors.", "milestones": "Delivered 3 major cross-functional projects this year. Strong 360 feedback.", "outsideView": "Seen as ''next in line.'' Peers expected this promotion.", "homeLife": "Ambitious. Has been planning financially and personally around this promotion."}',
+  jsonb_build_object(
+    'team', 'Analytics, 10 people. Taylor is respected and often informally mentors juniors.',
+    'milestones', 'Delivered 3 major cross-functional projects this year. Strong 360 feedback.',
+    'outsideView', 'Seen as next in line. Peers expected this promotion.',
+    'homeLife', 'Ambitious. Has been planning financially and personally around this promotion.'
+  ),
   'Taylor wants to understand exactly why, and what they need to do to get it next cycle.',
   'Composed → Stunned → Pushback → Resigned',
   ARRAY['accuse the manager of bias', 'threaten to quit immediately', 'shut down completely'],
@@ -360,19 +380,19 @@ INSERT INTO objectives (scenario_id, number, text, weight) VALUES
 -- (legal array is empty in SCEN_DATA)
 
 INSERT INTO pushback_tiers (id, scenario_id, level, level_label, trigger, requires_pre_approval) VALUES
-  ('t4000001-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000004', 0, 'Nailed it',   'Learner states decision clearly, owns the bar, gives specific growth areas.',             false),
-  ('t4000001-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000004', 1, 'Soft fumble', 'Learner throws the committee under the bus or gives vague growth feedback.',              false),
-  ('t4000001-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000004', 2, 'Challenge',   'Learner can''t name specific growth areas or is vague about the next-cycle path.',        false),
-  ('t4000001-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000004', 3, 'Escalated',   'Learner deflects all of Taylor''s direct questions or contradicts themselves.',            true);
+  ('a4000001-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000004', 0, 'Nailed it',   'Learner states decision clearly, owns the bar, gives specific growth areas.',             false),
+  ('a4000001-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000004', 1, 'Soft fumble', 'Learner throws the committee under the bus or gives vague growth feedback.',              false),
+  ('a4000001-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000004', 2, 'Challenge',   'Learner can''t name specific growth areas or is vague about the next-cycle path.',        false),
+  ('a4000001-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000004', 3, 'Escalated',   'Learner deflects all of Taylor''s direct questions or contradicts themselves.',            true);
 
 INSERT INTO pushback_responses (tier_id, letter, text, stage_direction) VALUES
-  ('t4000001-0000-0000-0000-000000000001', 'A', 'Okay. I appreciate you being direct. What specifically do I need to do differently?', 'Focused. Ready to work.'),
-  ('t4000001-0000-0000-0000-000000000002', 'A', 'What did the committee say exactly? I''d like to understand the feedback directly.', 'Calm but wants specifics.'),
-  ('t4000001-0000-0000-0000-000000000002', 'B', 'It sounds like the bar shifted after I submitted. Is that what happened?', 'Gently testing the explanation.'),
-  ('t4000001-0000-0000-0000-000000000003', 'A', 'I need more than "cross-team scope." What does that look like concretely?', 'Direct. Slightly frustrated.'),
-  ('t4000001-0000-0000-0000-000000000003', 'B', 'What would a strong packet look like next cycle? Can you show me an example?', 'Constructive but pushing.'),
-  ('t4000001-0000-0000-0000-000000000004', 'A', 'I want to understand — is this a timing issue, a performance issue, or something else?', 'Precise. Needs a straight answer.'),
-  ('t4000001-0000-0000-0000-000000000004', 'B', 'I''m going to be honest — this feels inconsistent with the feedback I''ve been getting.', 'Measured frustration.');
+  ('a4000001-0000-0000-0000-000000000001', 'A', 'Okay. I appreciate you being direct. What specifically do I need to do differently?', 'Focused. Ready to work.'),
+  ('a4000001-0000-0000-0000-000000000002', 'A', 'What did the committee say exactly? I''d like to understand the feedback directly.', 'Calm but wants specifics.'),
+  ('a4000001-0000-0000-0000-000000000002', 'B', 'It sounds like the bar shifted after I submitted. Is that what happened?', 'Gently testing the explanation.'),
+  ('a4000001-0000-0000-0000-000000000003', 'A', 'I need more than "cross-team scope." What does that look like concretely?', 'Direct. Slightly frustrated.'),
+  ('a4000001-0000-0000-0000-000000000003', 'B', 'What would a strong packet look like next cycle? Can you show me an example?', 'Constructive but pushing.'),
+  ('a4000001-0000-0000-0000-000000000004', 'A', 'I want to understand — is this a timing issue, a performance issue, or something else?', 'Precise. Needs a straight answer.'),
+  ('a4000001-0000-0000-0000-000000000004', 'B', 'I''m going to be honest — this feels inconsistent with the feedback I''ve been getting.', 'Measured frustration.');
 
 INSERT INTO stage_rules (scenario_id, type, text, sort_order) VALUES
   ('10000000-0000-0000-0000-000000000004', 'do',   'Let Taylor ask follow-up questions in phase 3.', 1),
