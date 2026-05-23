@@ -20,7 +20,6 @@ const NAV_ITEMS: NavItem[] = [
     label: "My Progress",
     href: "/progress",
     icon: <ProgressIcon />,
-    disabled: true,
   },
 ];
 
