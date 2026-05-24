@@ -46,6 +46,17 @@ export function CoachChat({ sessionId, hasRating }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: apiMessages }),
       });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("[CoachChat] API error", res.status, errorText);
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: `Error ${res.status}: ${errorText.slice(0, 200)}` },
+        ]);
+        return;
+      }
+
       const data = await res.json() as { message: string; quotes: Quote[]; suggestions: string[] };
 
       const assistantMsg: Message = {
@@ -56,10 +67,11 @@ export function CoachChat({ sessionId, hasRating }: Props) {
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
-    } catch {
+    } catch (err) {
+      console.error("[CoachChat] fetch error", err);
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "Sorry, I had trouble connecting. Please try again." },
+        { role: "assistant", content: `Connection error: ${String(err)}` },
       ]);
     } finally {
       setLoading(false);
