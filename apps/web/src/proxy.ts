@@ -19,7 +19,7 @@ const DEFAULT_ROUTES: Record<string, string> = {
   ops_admin: "/overview",
 };
 
-const PUBLIC_PATHS = ["/sign-in", "/sign-up", "/api/auth"];
+const PUBLIC_PATHS = ["/sign-in", "/sign-up", "/api/auth", "/api/coach"];
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
