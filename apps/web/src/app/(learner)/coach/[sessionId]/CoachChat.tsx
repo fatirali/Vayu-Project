@@ -15,6 +15,7 @@ export function CoachChat({ sessionId, hasRating }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const isInitialLoad = messages.length === 0;
   const [ratingSubmitted, setRatingSubmitted] = useState(hasRating);
   const [hoverRating, setHoverRating] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -150,10 +151,17 @@ export function CoachChat({ sessionId, hasRating }: Props) {
             <div className="w-7 h-7 rounded-full bg-[var(--color-accent-2)] border border-[var(--color-accent)] flex items-center justify-center shrink-0 mt-0.5">
               <span className="text-[10px] font-bold text-[var(--color-accent)]">A</span>
             </div>
-            <div className="bg-[var(--color-paper)] border border-[var(--color-line)] rounded-[var(--radius-lg)] rounded-tl-sm px-4 py-3 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-ink-4)] animate-bounce" style={{ animationDelay: "0ms" }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-ink-4)] animate-bounce" style={{ animationDelay: "150ms" }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-ink-4)] animate-bounce" style={{ animationDelay: "300ms" }} />
+            <div className="bg-[var(--color-paper)] border border-[var(--color-line)] rounded-[var(--radius-lg)] rounded-tl-sm px-4 py-3 space-y-2">
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-ink-4)] animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-ink-4)] animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-ink-4)] animate-bounce" style={{ animationDelay: "300ms" }} />
+              </div>
+              <p className="text-xs text-[var(--color-ink-4)]">
+                {isInitialLoad
+                  ? "Ada is reviewing your session\u2026 this usually takes 15\u201320 seconds"
+                  : "Ada is thinking\u2026"}
+              </p>
             </div>
           </div>
         )}
