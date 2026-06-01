@@ -45,6 +45,30 @@ export default async function ActorDashboardPage() {
     .eq("actor_id", user.id)
     .eq("status", "completed");
 
+  // No-show count
+  const { count: noShowCount } = await supabase
+    .from("sessions")
+    .select("*", { count: "exact", head: true })
+    .eq("actor_id", user.id)
+    .eq("status", "no_show");
+
+  // Average actor rating (learner ratings on completed sessions)
+  const { data: ratingRows } = await supabase
+    .from("sessions")
+    .select("actor_rating")
+    .eq("actor_id", user.id)
+    .not("actor_rating", "is", null);
+
+  const ratings = (ratingRows ?? []).map((r) => r.actor_rating as number).filter(Boolean);
+  const avgRating = ratings.length > 0
+    ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1)
+    : null;
+
+  const totalFinished = (completedCount ?? 0) + (noShowCount ?? 0);
+  const noShowRate = totalFinished > 0
+    ? Math.round(((noShowCount ?? 0) / totalFinished) * 100)
+    : null;
+
   const now = new Date();
   const todaySessions = (sessions ?? []).filter((s) => {
     const d = new Date(s.scheduled_at);
@@ -111,6 +135,12 @@ export default async function ActorDashboardPage() {
                 <div className="space-y-3">
                   <StatRow label="Sessions completed" value={String(completedCount ?? 0)} />
                   <StatRow label="Scenarios certified" value={String(certCount ?? 0)} />
+                  {avgRating !== null && (
+                    <StatRow label="Avg learner rating" value={`${avgRating} / 5`} />
+                  )}
+                  {noShowRate !== null && (
+                    <StatRow label="No-show rate" value={`${noShowRate}%`} />
+                  )}
                 </div>
               </div>
             </div>

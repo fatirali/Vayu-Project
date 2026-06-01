@@ -20,7 +20,6 @@ export default async function ProgressPage() {
     .eq("analytics_ready", true)
     .order("scheduled_at", { ascending: true });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows = (sessions ?? []).map((s) => ({
     id: s.id,
     scheduledAt: s.scheduled_at,
@@ -34,60 +33,7 @@ export default async function ProgressPage() {
   const scores = rows.map((r) => r.scores.overall_score as number);
   const first = rows[0]?.scores;
   const last = rows[rows.length - 1]?.scores;
-
-  function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  }
-
-  function formatDuration(secs: number) {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m}:${String(s).padStart(2, "0")}`;
-  }
-
-  // Build sparkline SVG path
-  function buildSparkline(values: number[], width: number, height: number) {
-    if (values.length < 2) return null;
-    const minV = Math.min(...values);
-    const maxV = Math.max(...values);
-    const range = maxV - minV || 1;
-    const points = values.map((v, i) => {
-      const x = (i / (values.length - 1)) * width;
-      const y = height - ((v - minV) / range) * (height - 8) - 4;
-      return `${x},${y}`;
-    });
-    return points.join(" ");
-  }
-
   const sparkPoints = buildSparkline(scores, 400, 80);
-
-  function Delta({ first, last, label, lowerBetter }: { first: number; last: number; label: string; lowerBetter?: boolean }) {
-    const diff = last - first;
-    const improved = lowerBetter ? diff < 0 : diff > 0;
-    const neutral = diff === 0;
-    return (
-      <div className="bg-[var(--color-paper)] border border-[var(--color-line)] rounded-[var(--radius-lg)] p-4">
-        <p className="text-xs text-[var(--color-ink-4)] mb-1">{label}</p>
-        <div className="flex items-end gap-2">
-          <span className="text-xl font-semibold text-[var(--color-ink)]">{last}</span>
-          {!neutral && (
-            <span className={`text-xs font-medium pb-0.5 ${improved ? "text-[var(--color-good)]" : "text-[var(--color-bad)]"}`}>
-              {diff > 0 ? "+" : ""}{diff} {improved ? "↑" : "↓"}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5 mt-2">
-          <div className="flex-1 h-1.5 rounded-full bg-[var(--color-chip)] overflow-hidden">
-            <div
-              className={`h-full rounded-full ${improved ? "bg-[var(--color-good)]" : neutral ? "bg-[var(--color-ink-4)]" : "bg-[var(--color-bad)]"}`}
-              style={{ width: `${Math.min(100, Math.abs(last))}%` }}
-            />
-          </div>
-          <span className="text-[10px] text-[var(--color-ink-4)]">from {first}</span>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col h-full">
@@ -223,6 +169,57 @@ export default async function ProgressPage() {
 
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function formatDuration(secs: number) {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function buildSparkline(values: number[], width: number, height: number) {
+  if (values.length < 2) return null;
+  const minV = Math.min(...values);
+  const maxV = Math.max(...values);
+  const range = maxV - minV || 1;
+  const points = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * width;
+    const y = height - ((v - minV) / range) * (height - 8) - 4;
+    return `${x},${y}`;
+  });
+  return points.join(" ");
+}
+
+function Delta({ first, last, label, lowerBetter }: { first: number; last: number; label: string; lowerBetter?: boolean }) {
+  const diff = last - first;
+  const improved = lowerBetter ? diff < 0 : diff > 0;
+  const neutral = diff === 0;
+  return (
+    <div className="bg-[var(--color-paper)] border border-[var(--color-line)] rounded-[var(--radius-lg)] p-4">
+      <p className="text-xs text-[var(--color-ink-4)] mb-1">{label}</p>
+      <div className="flex items-end gap-2">
+        <span className="text-xl font-semibold text-[var(--color-ink)]">{last}</span>
+        {!neutral && (
+          <span className={`text-xs font-medium pb-0.5 ${improved ? "text-[var(--color-good)]" : "text-[var(--color-bad)]"}`}>
+            {diff > 0 ? "+" : ""}{diff} {improved ? "↑" : "↓"}
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-1.5 mt-2">
+        <div className="flex-1 h-1.5 rounded-full bg-[var(--color-chip)] overflow-hidden">
+          <div
+            className={`h-full rounded-full ${improved ? "bg-[var(--color-good)]" : neutral ? "bg-[var(--color-ink-4)]" : "bg-[var(--color-bad)]"}`}
+            style={{ width: `${Math.min(100, Math.abs(last))}%` }}
+          />
+        </div>
+        <span className="text-[10px] text-[var(--color-ink-4)]">from {first}</span>
       </div>
     </div>
   );
