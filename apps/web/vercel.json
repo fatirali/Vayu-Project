@@ -13,7 +13,7 @@
     },
     {
       "path": "/api/cron/reminders",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 8 * * *"
     }
   ]
 }
