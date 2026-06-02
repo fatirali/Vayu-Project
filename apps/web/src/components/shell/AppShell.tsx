@@ -1,4 +1,5 @@
 import { SidebarNav, type NavItem } from "./SidebarNav";
+import { SignOutButton } from "./SignOutButton";
 
 type NavGroup = {
   label?: string;
@@ -54,8 +55,8 @@ export function AppShell({ portal, navGroups, user, topBar, children }: Props) {
         <SidebarNav groups={navGroups} portal={portal} />
 
         {/* User */}
-        <div className="px-3 pb-3 pt-2 border-t border-[var(--color-line)] shrink-0">
-          <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-[var(--radius)] hover:bg-[var(--color-chip)] cursor-pointer transition-colors">
+        <div className="px-3 pb-3 pt-2 border-t border-[var(--color-line)] shrink-0 space-y-1">
+          <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-[var(--radius)]">
             <div className="w-7 h-7 rounded-full bg-[var(--color-chip)] flex items-center justify-center shrink-0">
               <span className="text-[10px] font-semibold text-[var(--color-ink-3)]">
                 {initials}
@@ -70,6 +71,7 @@ export function AppShell({ portal, navGroups, user, topBar, children }: Props) {
               </p>
             </div>
           </div>
+          <SignOutButton />
         </div>
       </aside>
 
