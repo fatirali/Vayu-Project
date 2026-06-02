@@ -69,6 +69,8 @@ export default async function ActorDashboardPage() {
     ? Math.round(((noShowCount ?? 0) / totalFinished) * 100)
     : null;
 
+  const isNewActor = (certCount ?? 0) === 0 && (completedCount ?? 0) === 0;
+
   const now = new Date();
   const todaySessions = (sessions ?? []).filter((s) => {
     const d = new Date(s.scheduled_at);
@@ -90,6 +92,44 @@ export default async function ActorDashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-6">
             {/* Session list */}
             <div className="space-y-6">
+              {isNewActor && (
+                <div className="bg-[var(--color-paper)] border border-[var(--color-actor)]/30 rounded-[var(--radius-lg)] p-5">
+                  <p className="text-sm font-semibold text-[var(--color-ink)] mb-1">Welcome to the Actor Portal</p>
+                  <p className="text-xs text-[var(--color-ink-3)] mb-4">
+                    Here&apos;s what happens next before sessions start appearing.
+                  </p>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-5 h-5 rounded-full bg-[var(--color-actor)]/15 flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="text-[10px] font-bold text-[var(--color-actor)]">1</span>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-[var(--color-ink)]">Application review</p>
+                        <p className="text-[11px] text-[var(--color-ink-4)]">Our team will review your profile within 2 business days.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-5 h-5 rounded-full bg-[var(--color-actor)]/15 flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="text-[10px] font-bold text-[var(--color-actor)]">2</span>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-[var(--color-ink)]">Scenario certification</p>
+                        <p className="text-[11px] text-[var(--color-ink-4)]">Once approved, you&apos;ll be certified on one or more scenarios by our L&D team.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-5 h-5 rounded-full bg-[var(--color-actor)]/15 flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="text-[10px] font-bold text-[var(--color-actor)]">3</span>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-[var(--color-ink)]">Sessions appear here</p>
+                        <p className="text-[11px] text-[var(--color-ink-4)]">When learners book sessions with you, they&apos;ll show up on this dashboard.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {todaySessions.length > 0 && (
                 <section>
                   <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-actor)] mb-3">
