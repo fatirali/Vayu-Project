@@ -7,7 +7,7 @@ type CookieEntry = { name: string; value: string; options?: Record<string, unkno
 // e.g. both learner and actor have a "brief" concept but different pages
 const ROLE_ROUTES: Record<string, string[]> = {
   learner: ["/library", "/book", "/brief", "/session", "/my-sessions", "/analytics", "/coach", "/progress"],
-  actor: ["/actor/dashboard", "/actor/brief", "/actor/playbook", "/actor/rules", "/actor/session"],
+  actor: ["/actor/dashboard", "/actor/brief", "/actor/playbook", "/actor/rules", "/actor/session", "/actor/scenarios", "/actor/earnings"],
   ld_admin: ["/scenarios", "/actors", "/cohorts", "/insights"],
   ops_admin: ["/overview", "/sessions", "/roster", "/payouts"],
 };
