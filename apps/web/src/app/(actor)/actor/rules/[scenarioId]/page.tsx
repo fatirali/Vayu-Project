@@ -12,15 +12,6 @@ export default async function RulesPage({ params }: Props) {
   const user = await requireAuth();
   const supabase = await createSupabaseServerClient();
 
-  const { data: cert } = await supabase
-    .from("actor_certifications")
-    .select("status")
-    .eq("actor_id", user.id)
-    .eq("scenario_id", scenarioId)
-    .single();
-
-  if (!cert) notFound();
-
   const { data: scenario } = await supabase
     .from("scenarios")
     .select(`

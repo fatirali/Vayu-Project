@@ -13,16 +13,6 @@ export default async function PlaybookPage({ params }: Props) {
   const user = await requireAuth();
   const supabase = await createSupabaseServerClient();
 
-  // Verify actor is certified for this scenario
-  const { data: cert } = await supabase
-    .from("actor_certifications")
-    .select("status")
-    .eq("actor_id", user.id)
-    .eq("scenario_id", scenarioId)
-    .single();
-
-  if (!cert) notFound();
-
   const { data: scenario } = await supabase
     .from("scenarios")
     .select(`
