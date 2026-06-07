@@ -104,22 +104,13 @@ export default async function ActorDashboardPage() {
                         <span className="text-[10px] font-bold text-[var(--color-actor)]">1</span>
                       </div>
                       <div>
-                        <p className="text-xs font-medium text-[var(--color-ink)]">Application review</p>
-                        <p className="text-[11px] text-[var(--color-ink-4)]">Our team will review your profile within 2 business days.</p>
+                        <p className="text-xs font-medium text-[var(--color-ink)]">Scenario certification</p>
+                        <p className="text-[11px] text-[var(--color-ink-4)]">Our L&D team will certify you on one or more scenarios.</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <div className="w-5 h-5 rounded-full bg-[var(--color-actor)]/15 flex items-center justify-center shrink-0 mt-0.5">
                         <span className="text-[10px] font-bold text-[var(--color-actor)]">2</span>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-[var(--color-ink)]">Scenario certification</p>
-                        <p className="text-[11px] text-[var(--color-ink-4)]">Once approved, you&apos;ll be certified on one or more scenarios by our L&D team.</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-5 h-5 rounded-full bg-[var(--color-actor)]/15 flex items-center justify-center shrink-0 mt-0.5">
-                        <span className="text-[10px] font-bold text-[var(--color-actor)]">3</span>
                       </div>
                       <div>
                         <p className="text-xs font-medium text-[var(--color-ink)]">Sessions appear here</p>

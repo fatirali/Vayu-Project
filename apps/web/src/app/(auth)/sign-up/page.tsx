@@ -8,76 +8,44 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-const learnerSchema = z.object({
+const schema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Enter a valid email"),
   password: z.string().min(8, "Minimum 8 characters"),
-  role: z.literal("learner"),
   company: z.string().optional(),
-  jobTitle: z.string().optional(),
 });
-
-const actorSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  email: z.string().email("Enter a valid email"),
-  password: z.string().min(8, "Minimum 8 characters"),
-  role: z.literal("actor"),
-  linkedinUrl: z.string().url("Enter a valid LinkedIn URL").optional().or(z.literal("")),
-  referralSource: z.string().optional(),
-});
-
-const schema = z.discriminatedUnion("role", [learnerSchema, actorSchema]);
 type FormValues = z.infer<typeof schema>;
-
-type Role = "learner" | "actor";
 
 export default function SignUpPage() {
   const router = useRouter();
-  const [role, setRole] = useState<Role>("learner");
   const [serverError, setServerError] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [done, setDone] = useState(false);
 
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { role: "learner" },
   });
 
   const supabase = createSupabaseBrowserClient();
 
-  function switchRole(r: Role) {
-    setRole(r);
-    setValue("role", r);
-  }
-
   async function onSubmit(values: FormValues) {
     setServerError(null);
-
-    const metadata: Record<string, string | undefined> = {
-      role: values.role,
-      firstName: values.firstName,
-      lastName: values.lastName,
-    };
-
-    if (values.role === "learner") {
-      metadata["company"] = values.company ?? undefined;
-      metadata["jobTitle"] = values.jobTitle ?? undefined;
-    } else {
-      metadata["linkedinUrl"] = values.linkedinUrl ?? undefined;
-      metadata["referralSource"] = values.referralSource ?? undefined;
-    }
 
     const { error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
-      options: { data: metadata },
+      options: {
+        data: {
+          role: "learner",
+          firstName: values.firstName,
+          lastName: values.lastName,
+          company: values.company ?? undefined,
+        },
+      },
     });
 
     if (error) {
@@ -85,12 +53,8 @@ export default function SignUpPage() {
       return;
     }
 
-    if (values.role === "learner") {
-      router.push("/library");
-      router.refresh();
-    } else {
-      setDone(true);
-    }
+    router.push("/library");
+    router.refresh();
   }
 
   async function handleGoogle() {
@@ -101,30 +65,6 @@ export default function SignUpPage() {
         redirectTo: `${window.location.origin}/api/auth/callback?next=/library`,
       },
     });
-  }
-
-  if (done) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="w-full max-w-sm text-center">
-          <div className="inline-flex items-center justify-center w-10 h-10 rounded-[var(--radius)] bg-[var(--color-actor)] mb-4">
-            <span className="text-white font-semibold text-sm">R</span>
-          </div>
-          <h1 className="text-xl font-semibold text-[var(--color-ink)] mb-2">
-            Application received
-          </h1>
-          <p className="text-sm text-[var(--color-ink-3)] mb-4">
-            We&apos;ll review your application and email you within 2 business days.
-          </p>
-          <Link
-            href="/sign-in"
-            className="text-sm text-[var(--color-accent)] hover:underline font-medium"
-          >
-            Return to sign in
-          </Link>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -145,41 +85,7 @@ export default function SignUpPage() {
 
         {/* Card */}
         <div className="bg-[var(--color-paper)] border border-[var(--color-line)] rounded-[var(--radius-auth-lg)] p-6 shadow-sm">
-          {/* Role picker */}
-          <div className="flex rounded-[var(--radius-auth)] border border-[var(--color-line)] p-0.5 mb-5 bg-[var(--color-chip)]">
-            <button
-              type="button"
-              onClick={() => switchRole("learner")}
-              className={`flex-1 py-1.5 text-xs font-medium rounded-[calc(var(--radius-auth)-2px)] transition ${
-                role === "learner"
-                  ? "bg-white text-[var(--color-ink)] shadow-sm"
-                  : "text-[var(--color-ink-4)] hover:text-[var(--color-ink-3)]"
-              }`}
-            >
-              I&apos;m a learner
-            </button>
-            <button
-              type="button"
-              onClick={() => switchRole("actor")}
-              className={`flex-1 py-1.5 text-xs font-medium rounded-[calc(var(--radius-auth)-2px)] transition ${
-                role === "actor"
-                  ? "bg-white text-[var(--color-ink)] shadow-sm"
-                  : "text-[var(--color-ink-4)] hover:text-[var(--color-ink-3)]"
-              }`}
-            >
-              I&apos;m an actor
-            </button>
-          </div>
-
-          {role === "actor" && (
-            <p className="text-xs text-[var(--color-ink-4)] bg-[var(--color-chip)] px-3 py-2 rounded-[var(--radius-auth)] mb-4">
-              Actor accounts require approval. We&apos;ll review your application within 2 business days.
-            </p>
-          )}
-
           <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-            <input type="hidden" {...register("role")} />
-
             {/* Name row */}
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -272,75 +178,26 @@ export default function SignUpPage() {
               )}
             </div>
 
-            {/* Learner-only fields */}
-            {role === "learner" && (
-              <>
-                <div>
-                  <label
-                    htmlFor="company"
-                    className="block text-xs font-medium text-[var(--color-ink-3)] mb-1.5"
-                  >
-                    Company{" "}
-                    <span className="text-[var(--color-ink-4)] font-normal">
-                      (optional)
-                    </span>
-                  </label>
-                  <input
-                    id="company"
-                    type="text"
-                    autoComplete="organization"
-                    placeholder="Acme Corp"
-                    className="w-full px-3 py-2 text-sm bg-white border border-[var(--color-line)] rounded-[var(--radius-auth)] text-[var(--color-ink)] placeholder:text-[var(--color-ink-4)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition"
-                    {...register("company" as "company")}
-                  />
-                </div>
-              </>
-            )}
-
-            {/* Actor-only fields */}
-            {role === "actor" && (
-              <>
-                <div>
-                  <label
-                    htmlFor="linkedinUrl"
-                    className="block text-xs font-medium text-[var(--color-ink-3)] mb-1.5"
-                  >
-                    LinkedIn URL
-                  </label>
-                  <input
-                    id="linkedinUrl"
-                    type="url"
-                    autoComplete="url"
-                    placeholder="https://linkedin.com/in/yourname"
-                    className="w-full px-3 py-2 text-sm bg-white border border-[var(--color-line)] rounded-[var(--radius-auth)] text-[var(--color-ink)] placeholder:text-[var(--color-ink-4)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition"
-                    {...register("linkedinUrl" as "linkedinUrl")}
-                  />
-                  {"linkedinUrl" in errors && errors.linkedinUrl && (
-                    <p className="mt-1 text-xs text-[var(--color-bad)]">
-                      {errors.linkedinUrl.message}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label
-                    htmlFor="referralSource"
-                    className="block text-xs font-medium text-[var(--color-ink-3)] mb-1.5"
-                  >
-                    How did you hear about us?{" "}
-                    <span className="text-[var(--color-ink-4)] font-normal">
-                      (optional)
-                    </span>
-                  </label>
-                  <input
-                    id="referralSource"
-                    type="text"
-                    placeholder="LinkedIn, friend, etc."
-                    className="w-full px-3 py-2 text-sm bg-white border border-[var(--color-line)] rounded-[var(--radius-auth)] text-[var(--color-ink)] placeholder:text-[var(--color-ink-4)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition"
-                    {...register("referralSource" as "referralSource")}
-                  />
-                </div>
-              </>
-            )}
+            {/* Company */}
+            <div>
+              <label
+                htmlFor="company"
+                className="block text-xs font-medium text-[var(--color-ink-3)] mb-1.5"
+              >
+                Company{" "}
+                <span className="text-[var(--color-ink-4)] font-normal">
+                  (optional)
+                </span>
+              </label>
+              <input
+                id="company"
+                type="text"
+                autoComplete="organization"
+                placeholder="Acme Corp"
+                className="w-full px-3 py-2 text-sm bg-white border border-[var(--color-line)] rounded-[var(--radius-auth)] text-[var(--color-ink)] placeholder:text-[var(--color-ink-4)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition"
+                {...register("company")}
+              />
+            </div>
 
             {/* Server error */}
             {serverError && (
@@ -354,39 +211,31 @@ export default function SignUpPage() {
               disabled={isSubmitting}
               className="w-full py-2 px-4 text-sm font-medium text-white bg-[var(--color-accent)] rounded-[var(--radius-auth)] hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] disabled:opacity-50 transition"
             >
-              {isSubmitting
-                ? "Creating account…"
-                : role === "actor"
-                ? "Apply as actor"
-                : "Create account"}
+              {isSubmitting ? "Creating account…" : "Create account"}
             </button>
           </form>
 
-          {role === "learner" && (
-            <>
-              {/* Divider */}
-              <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-[var(--color-line)]" />
-                </div>
-                <div className="relative flex justify-center">
-                  <span className="px-2 text-xs text-[var(--color-ink-4)] bg-[var(--color-paper)]">
-                    or
-                  </span>
-                </div>
-              </div>
+          {/* Divider */}
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-[var(--color-line)]" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="px-2 text-xs text-[var(--color-ink-4)] bg-[var(--color-paper)]">
+                or
+              </span>
+            </div>
+          </div>
 
-              <button
-                type="button"
-                onClick={handleGoogle}
-                disabled={googleLoading}
-                className="w-full flex items-center justify-center gap-2 py-2 px-4 text-sm font-medium text-[var(--color-ink-2)] bg-white border border-[var(--color-line)] rounded-[var(--radius-auth)] hover:bg-[var(--color-chip)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] disabled:opacity-50 transition"
-              >
-                <GoogleIcon />
-                {googleLoading ? "Redirecting…" : "Sign up with Google"}
-              </button>
-            </>
-          )}
+          <button
+            type="button"
+            onClick={handleGoogle}
+            disabled={googleLoading}
+            className="w-full flex items-center justify-center gap-2 py-2 px-4 text-sm font-medium text-[var(--color-ink-2)] bg-white border border-[var(--color-line)] rounded-[var(--radius-auth)] hover:bg-[var(--color-chip)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-accent)] disabled:opacity-50 transition"
+          >
+            <GoogleIcon />
+            {googleLoading ? "Redirecting…" : "Sign up with Google"}
+          </button>
         </div>
 
         <p className="text-center text-sm text-[var(--color-ink-4)] mt-4">
