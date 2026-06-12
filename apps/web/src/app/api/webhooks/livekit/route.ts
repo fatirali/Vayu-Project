@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { WebhookReceiver } from "livekit-server-sdk";
+import { WebhookReceiver, EgressClient, EncodedFileOutput, EncodedFileType, S3Upload } from "livekit-server-sdk";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { createClient } from "@supabase/supabase-js";
 import type { postCallPipeline } from "@/trigger/post-call-pipeline";
@@ -28,6 +28,43 @@ export async function POST(req: NextRequest) {
     event = await receiver.receive(body, authHeader);
   } catch {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  }
+
+  // Start recording when the room is created and ready
+  if (event.event === "room_started") {
+    const roomName = event.room?.name ?? "";
+    const sessionId = roomName.replace(/^rehearse-/, "");
+
+    if (sessionId && roomName.startsWith("rehearse-")) {
+      try {
+        const egressClient = new EgressClient(
+          process.env["NEXT_PUBLIC_LIVEKIT_URL"]!.replace("wss://", "https://"),
+          process.env["LIVEKIT_API_KEY"]!,
+          process.env["LIVEKIT_API_SECRET"]!
+        );
+
+        const fileOutput = new EncodedFileOutput({
+          filepath: `${sessionId}.mp4`,
+          fileType: EncodedFileType.MP4,
+          output: {
+            case: "s3",
+            value: new S3Upload({
+              accessKey: process.env["SUPABASE_S3_ACCESS_KEY"]!,
+              secret: process.env["SUPABASE_S3_SECRET_KEY"]!,
+              bucket: process.env["SUPABASE_S3_BUCKET"]!,
+              region: process.env["SUPABASE_S3_REGION"]!,
+              endpoint: `${process.env["NEXT_PUBLIC_SUPABASE_URL"]!}/storage/v1/s3`,
+              forcePathStyle: true,
+            }),
+          },
+        });
+
+        await egressClient.startRoomCompositeEgress(roomName, fileOutput);
+        console.log("[livekit webhook] Egress started for room:", roomName);
+      } catch (egressErr) {
+        console.error("[livekit webhook] Failed to start egress:", egressErr);
+      }
+    }
   }
 
   // We care about egress_ended — that's when the recording is complete
