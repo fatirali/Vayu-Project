@@ -88,6 +88,18 @@ export const postCallPipeline = task({
       throw new Error(`Session not found: ${sessionId}`);
     }
 
+    // Guard against running twice for the same session
+    const { data: existingScores } = await supabase
+      .from("session_scores")
+      .select("session_id")
+      .eq("session_id", sessionId)
+      .single();
+
+    if (existingScores) {
+      logger.warn("Analytics already exist for session — skipping", { sessionId });
+      return { skipped: true, reason: "already_processed" };
+    }
+
     if (!session.recording_path) {
       logger.warn("No recording path — skipping transcription", { sessionId });
       return { skipped: true, reason: "no_recording" };
@@ -310,7 +322,7 @@ Respond in JSON with this exact structure:
       pace_wpm: paceWpm,
       talk_ratio: talkRatio,
       duration_actual: Math.round(totalDuration),
-    });
+    }, { onConflict: "session_id" });
 
     if (scoreError) {
       throw new Error(`Failed to save scores: ${scoreError.message}`);
