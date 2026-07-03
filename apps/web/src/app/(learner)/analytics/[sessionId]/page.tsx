@@ -5,6 +5,7 @@ import { TopBar } from "@/components/shell/TopBar";
 import { KPICard } from "@/components/ui/KPICard";
 import { Pill } from "@/components/ui/Pill";
 import Link from "next/link";
+import { SessionRecording } from "./SessionRecording";
 
 type Props = {
   params: Promise<{ sessionId: string }>;
@@ -149,6 +150,8 @@ export default async function AnalyticsPage({ params }: Props) {
               {formatDuration(scores.duration_actual)} total
             </span>
           </div>
+
+          <SessionRecording sessionId={sessionId} />
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
             {/* Left: transcript */}
