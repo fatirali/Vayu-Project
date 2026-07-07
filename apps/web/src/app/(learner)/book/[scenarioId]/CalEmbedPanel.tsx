@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
+import Cal from "@calcom/embed-react";
 
 type Actor = {
   id: string;
@@ -86,15 +87,21 @@ export function CalEmbedPanel({
       {/* Cal.com embed or placeholder */}
       <div className="bg-[var(--color-paper)] border border-[var(--color-line)] rounded-[var(--radius-lg)] overflow-hidden min-h-[500px] flex flex-col">
         {selectedActor?.calComUsername ? (
-          <CalInlineEmbed
+          <Cal
             key={selectedActor.id}
-            calComUsername={selectedActor.calComUsername}
-            learnerName={learnerName}
-            learnerEmail={learnerEmail}
-            scenarioId={scenarioId}
-            scenarioTitle={scenarioTitle}
-            learnerId={learnerId}
-            actorId={selectedActor.id}
+            calLink={selectedActor.calComUsername}
+            style={{ width: "100%", height: "100%", flex: 1, overflow: "scroll" }}
+            config={{
+              name: learnerName,
+              email: learnerEmail,
+              notes: `Rehearse session — ${scenarioTitle}`,
+              // Flat bracket keys serialize into the booking URL the same way
+              // the previous iframe URL did — the booking webhook depends on these.
+              "metadata[scenarioId]": scenarioId,
+              "metadata[learnerId]": learnerId,
+              "metadata[actorId]": selectedActor.id,
+              layout: "month_view",
+            }}
           />
         ) : (
           <div className="flex flex-col items-center justify-center flex-1 p-8 text-center">
@@ -139,80 +146,6 @@ export function CalEmbedPanel({
         )}
       </div>
     </div>
-  );
-}
-
-// Uses Cal.com's official embed snippet (v1.2) loaded via next/script to avoid
-// ERR_BLOCKED_BY_RESPONSE.NotSameOrigin from dynamic script injection.
-// Keyed by actorId in the parent so it fully remounts when the actor changes.
-function CalInlineEmbed({
-  calComUsername,
-  learnerName,
-  learnerEmail,
-  scenarioId,
-  scenarioTitle,
-  learnerId,
-  actorId,
-}: {
-  calComUsername: string;
-  learnerName: string;
-  learnerEmail: string;
-  scenarioId: string;
-  scenarioTitle: string;
-  learnerId: string;
-  actorId: string;
-}) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const ns = useRef(`cal_${actorId.replace(/-/g, "")}`);
-  const initialized = useRef(false);
-
-  useEffect(() => {
-    // onLoad on a JSX <script> doesn't fire reliably in React 19.
-    // Poll for window.Cal instead — the <script> tag below loads it async.
-    let attempts = 0;
-    const timer = setInterval(() => {
-      attempts++;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const Cal = (window as any).Cal;
-      const el = containerRef.current;
-      if (Cal && el && !initialized.current) {
-        clearInterval(timer);
-        initialized.current = true;
-
-        const namespace = ns.current;
-        Cal.snippetVersion = "1.2";
-        Cal("init", namespace, { origin: "https://cal.com" });
-        Cal.ns[namespace]("inline", {
-          elementOrSelector: el,
-          calLink: calComUsername,
-          config: {
-            name: learnerName,
-            email: learnerEmail,
-            notes: `Rehearse session — ${scenarioTitle}`,
-            metadata: { scenarioId, learnerId, actorId },
-          },
-        });
-        Cal.ns[namespace]("ui", { hideEventTypeDetails: false, layout: "month_view" });
-      } else if (attempts > 50) {
-        clearInterval(timer); // give up after 5 seconds
-      }
-    }, 100);
-    return () => clearInterval(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return (
-    <>
-      {/* Plain JSX <script src> avoids the CORP/next-script loading pipeline
-          that was triggering ERR_BLOCKED_BY_RESPONSE.NotSameOrigin */}
-      {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-      <script src="https://app.cal.com/embed/embed.js" async />
-      <div
-        ref={containerRef}
-        className="w-full flex-1"
-        style={{ minHeight: 520, overflow: "scroll" }}
-      />
-    </>
   );
 }
 
