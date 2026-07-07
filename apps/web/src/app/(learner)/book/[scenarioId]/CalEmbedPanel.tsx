@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Script from "next/script";
 
 type Actor = {
   id: string;
@@ -142,7 +143,8 @@ export function CalEmbedPanel({
   );
 }
 
-// Uses Cal.com's official embed snippet (v1.2) to avoid X-Frame-Options blocks on raw iframes.
+// Uses Cal.com's official embed snippet (v1.2) loaded via next/script to avoid
+// ERR_BLOCKED_BY_RESPONSE.NotSameOrigin from dynamic script injection.
 // Keyed by actorId in the parent so it fully remounts when the actor changes.
 function CalInlineEmbed({
   calComUsername,
@@ -162,52 +164,21 @@ function CalInlineEmbed({
   actorId: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  // Use a stable unique namespace per mount so multiple actors don't clash
   const ns = useRef(`cal_${actorId.replace(/-/g, "")}`);
+  const initialized = useRef(false);
 
-  useEffect(() => {
+  function initEmbed() {
     const el = containerRef.current;
-    if (!el) return;
+    if (!el || initialized.current) return;
+    initialized.current = true;
 
     const namespace = ns.current;
-
-    // Cal.com official IIFE loader (snippet v1.2)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (function (C: any, A: string, L: string) {
-      const p = (a: any, ar: any) => { a.q.push(ar); };
-      const d = C.document;
-      C.Cal = C.Cal || function (...args: any[]) {
-        const cal = C.Cal;
-        if (!cal.loaded) {
-          cal.ns = {};
-          cal.q = cal.q || [];
-          const s = d.createElement("script");
-          s.src = A;
-          d.head.appendChild(s);
-          cal.loaded = true;
-        }
-        if (args[0] === L) {
-          const api = (...a: any[]) => { p(api, a); };
-          const namespace2 = args[1];
-          (api as any).q = (api as any).q || [];
-          if (typeof namespace2 === "string") {
-            cal.ns[namespace2] = cal.ns[namespace2] || api;
-            p(cal.ns[namespace2], args);
-            p(cal, ["initNamespace", namespace2]);
-          } else {
-            p(cal, args);
-          }
-          return;
-        }
-        p(cal, args);
-      };
-    })(window, "https://app.cal.com/embed/embed.js", "init");
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const Cal = (window as any).Cal;
+    if (!Cal) return;
+
     Cal.snippetVersion = "1.2";
     Cal("init", namespace, { origin: "https://cal.com" });
-
     Cal.ns[namespace]("inline", {
       elementOrSelector: el,
       calLink: calComUsername,
@@ -215,24 +186,34 @@ function CalInlineEmbed({
         name: learnerName,
         email: learnerEmail,
         notes: `Rehearse session — ${scenarioTitle}`,
-        metadata: {
-          scenarioId,
-          learnerId,
-          actorId,
-        },
+        metadata: { scenarioId, learnerId, actorId },
       },
     });
-
     Cal.ns[namespace]("ui", { hideEventTypeDetails: false, layout: "month_view" });
+  }
+
+  // If the script was already loaded by a previous mount, init immediately
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((window as any).Cal?.loaded) {
+      initEmbed();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // empty — component remounts via key when actor changes
+  }, []);
 
   return (
-    <div
-      ref={containerRef}
-      className="w-full flex-1"
-      style={{ minHeight: 520, overflow: "scroll" }}
-    />
+    <>
+      <Script
+        src="https://app.cal.com/embed/embed.js"
+        strategy="afterInteractive"
+        onLoad={initEmbed}
+      />
+      <div
+        ref={containerRef}
+        className="w-full flex-1"
+        style={{ minHeight: 520, overflow: "scroll" }}
+      />
+    </>
   );
 }
 
