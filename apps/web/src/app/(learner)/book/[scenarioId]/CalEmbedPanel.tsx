@@ -44,7 +44,6 @@ export function CalEmbedPanel({
         name: learnerName,
         email: learnerEmail,
         notes: `Rehearse session — ${scenarioTitle}`,
-        embed: "true",
       }).toString() +
       `&metadata[scenarioId]=${encodeURIComponent(scenarioId)}` +
       `&metadata[learnerId]=${encodeURIComponent(learnerId)}` +
