@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Script from "next/script";
 
 type Actor = {
   id: string;
@@ -203,10 +202,14 @@ function CalInlineEmbed({
 
   return (
     <>
-      <Script
+      {/* React 19 hoists <script src> to <head> and deduplicates — avoids
+          the CORP-triggered ERR_BLOCKED_BY_RESPONSE that next/script and
+          dynamic DOM injection both hit. onLoad fires after the script executes. */}
+      {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+      <script
         src="https://app.cal.com/embed/embed.js"
-        strategy="afterInteractive"
         onLoad={initEmbed}
+        async
       />
       <div
         ref={containerRef}
