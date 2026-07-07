@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 type Actor = {
   id: string;
@@ -33,23 +33,6 @@ export function CalEmbedPanel({
   );
 
   const selectedActor = actors.find((a) => a.id === selectedActorId) ?? null;
-
-  // Cal.com embed URL for the actor's calendar
-  // Passes learner name, email, and scenario title as pre-fill params
-  // Build Cal.com URL with literal brackets for metadata params.
-  // URLSearchParams encodes [ ] as %5B %5D which Cal.com won't parse as metadata.
-  const calUrl = selectedActor?.calComUsername
-    ? `https://cal.com/${selectedActor.calComUsername}?` +
-      new URLSearchParams({
-        name: learnerName,
-        email: learnerEmail,
-        notes: `Rehearse session — ${scenarioTitle}`,
-        embed: "true",
-      }).toString() +
-      `&metadata[scenarioId]=${encodeURIComponent(scenarioId)}` +
-      `&metadata[learnerId]=${encodeURIComponent(learnerId)}` +
-      `&metadata[actorId]=${encodeURIComponent(selectedActor.id)}`
-    : null;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6">
@@ -102,13 +85,16 @@ export function CalEmbedPanel({
 
       {/* Cal.com embed or placeholder */}
       <div className="bg-[var(--color-paper)] border border-[var(--color-line)] rounded-[var(--radius-lg)] overflow-hidden min-h-[500px] flex flex-col">
-        {calUrl ? (
-          <iframe
-            src={calUrl}
-            className="w-full flex-1 border-0"
-            style={{ minHeight: 520 }}
-            title={`Book a session with ${selectedActor?.firstName} ${selectedActor?.lastName}`}
-            loading="lazy"
+        {selectedActor?.calComUsername ? (
+          <CalInlineEmbed
+            key={selectedActor.id}
+            calComUsername={selectedActor.calComUsername}
+            learnerName={learnerName}
+            learnerEmail={learnerEmail}
+            scenarioId={scenarioId}
+            scenarioTitle={scenarioTitle}
+            learnerId={learnerId}
+            actorId={selectedActor.id}
           />
         ) : (
           <div className="flex flex-col items-center justify-center flex-1 p-8 text-center">
@@ -155,6 +141,68 @@ export function CalEmbedPanel({
       </div>
     </div>
   );
+}
+
+// Inline embed using Cal.com's official embed script to avoid X-Frame-Options blocks.
+// Keyed by actorId in the parent so it fully remounts when the actor changes.
+function CalInlineEmbed({
+  calComUsername,
+  learnerName,
+  learnerEmail,
+  scenarioId,
+  scenarioTitle,
+  learnerId,
+  actorId,
+}: {
+  calComUsername: string;
+  learnerName: string;
+  learnerEmail: string;
+  scenarioId: string;
+  scenarioTitle: string;
+  learnerId: string;
+  actorId: string;
+}) {
+  const embedRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = embedRef.current;
+    if (!el) return;
+
+    function initEmbed() {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const Cal = (window as any).Cal;
+      if (!Cal) return;
+
+      Cal("init", { origin: "https://cal.com" });
+      Cal("inline", {
+        elementOrSelector: el,
+        calLink: calComUsername,
+        config: {
+          name: learnerName,
+          email: learnerEmail,
+          notes: `Rehearse session — ${scenarioTitle}`,
+          metadata: {
+            scenarioId,
+            learnerId,
+            actorId,
+          },
+        },
+      });
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((window as any).Cal) {
+      initEmbed();
+    } else {
+      const script = document.createElement("script");
+      script.src = "https://app.cal.com/embed/embed.js";
+      script.async = true;
+      script.onload = initEmbed;
+      document.head.appendChild(script);
+    }
+  }, []); // empty — component remounts via key when actor changes
+
+  return <div ref={embedRef} className="w-full flex-1" style={{ minHeight: 520 }} />;
 }
 
 function StarRating({ rating }: { rating: number }) {
