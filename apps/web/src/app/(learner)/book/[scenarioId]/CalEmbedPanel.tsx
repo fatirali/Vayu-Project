@@ -166,51 +166,47 @@ function CalInlineEmbed({
   const ns = useRef(`cal_${actorId.replace(/-/g, "")}`);
   const initialized = useRef(false);
 
-  function initEmbed() {
-    const el = containerRef.current;
-    if (!el || initialized.current) return;
-    initialized.current = true;
-
-    const namespace = ns.current;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const Cal = (window as any).Cal;
-    if (!Cal) return;
-
-    Cal.snippetVersion = "1.2";
-    Cal("init", namespace, { origin: "https://cal.com" });
-    Cal.ns[namespace]("inline", {
-      elementOrSelector: el,
-      calLink: calComUsername,
-      config: {
-        name: learnerName,
-        email: learnerEmail,
-        notes: `Rehearse session — ${scenarioTitle}`,
-        metadata: { scenarioId, learnerId, actorId },
-      },
-    });
-    Cal.ns[namespace]("ui", { hideEventTypeDetails: false, layout: "month_view" });
-  }
-
-  // If the script was already loaded by a previous mount, init immediately
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if ((window as any).Cal?.loaded) {
-      initEmbed();
-    }
+    // onLoad on a JSX <script> doesn't fire reliably in React 19.
+    // Poll for window.Cal instead — the <script> tag below loads it async.
+    let attempts = 0;
+    const timer = setInterval(() => {
+      attempts++;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const Cal = (window as any).Cal;
+      const el = containerRef.current;
+      if (Cal && el && !initialized.current) {
+        clearInterval(timer);
+        initialized.current = true;
+
+        const namespace = ns.current;
+        Cal.snippetVersion = "1.2";
+        Cal("init", namespace, { origin: "https://cal.com" });
+        Cal.ns[namespace]("inline", {
+          elementOrSelector: el,
+          calLink: calComUsername,
+          config: {
+            name: learnerName,
+            email: learnerEmail,
+            notes: `Rehearse session — ${scenarioTitle}`,
+            metadata: { scenarioId, learnerId, actorId },
+          },
+        });
+        Cal.ns[namespace]("ui", { hideEventTypeDetails: false, layout: "month_view" });
+      } else if (attempts > 50) {
+        clearInterval(timer); // give up after 5 seconds
+      }
+    }, 100);
+    return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <>
-      {/* React 19 hoists <script src> to <head> and deduplicates — avoids
-          the CORP-triggered ERR_BLOCKED_BY_RESPONSE that next/script and
-          dynamic DOM injection both hit. onLoad fires after the script executes. */}
+      {/* Plain JSX <script src> avoids the CORP/next-script loading pipeline
+          that was triggering ERR_BLOCKED_BY_RESPONSE.NotSameOrigin */}
       {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-      <script
-        src="https://app.cal.com/embed/embed.js"
-        onLoad={initEmbed}
-        async
-      />
+      <script src="https://app.cal.com/embed/embed.js" async />
       <div
         ref={containerRef}
         className="w-full flex-1"
