@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { WebhookReceiver, EgressClient, EncodedFileOutput, EncodedFileType, S3Upload } from "livekit-server-sdk";
+import { WebhookReceiver, EgressClient, EncodedFileOutput, EncodedFileType, S3Upload, EgressStatus } from "livekit-server-sdk";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { createClient } from "@supabase/supabase-js";
 import type { postCallPipeline } from "@/trigger/post-call-pipeline";
@@ -79,6 +79,23 @@ export async function POST(req: NextRequest) {
     const sessionId = roomName.replace(/^rehearse-/, "");
 
     if (!sessionId) {
+      return NextResponse.json({ received: true });
+    }
+
+    // Only trust the file path if the egress actually completed.
+    // A failed/aborted egress still reports a filename in fileResults,
+    // but the file was never uploaded — saving it crashes the pipeline
+    // downstream with "Object not found".
+    if (egressInfo.status !== EgressStatus.EGRESS_COMPLETE) {
+      console.error(
+        "[livekit webhook] Egress did not complete — skipping pipeline",
+        {
+          egressId: egressInfo.egressId,
+          roomName,
+          status: EgressStatus[egressInfo.status],
+          error: egressInfo.error || "(no error message)",
+        }
+      );
       return NextResponse.json({ received: true });
     }
 
