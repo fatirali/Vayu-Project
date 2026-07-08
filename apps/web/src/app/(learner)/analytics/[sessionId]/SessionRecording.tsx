@@ -55,12 +55,20 @@ export function SessionRecording({ sessionId }: { sessionId: string }) {
           Session Recording
         </h3>
       </div>
-      <video
-        src={url}
-        controls
-        className="w-full"
-        style={{ maxHeight: 360, background: "#1a1a1a" }}
-      />
+      {url.includes(".ogg") ? (
+        // Audio-only recordings (current format — see livekit webhook)
+        <div className="px-4 py-6">
+          <audio src={url} controls className="w-full" />
+        </div>
+      ) : (
+        // Legacy video recordings
+        <video
+          src={url}
+          controls
+          className="w-full"
+          style={{ maxHeight: 360, background: "#1a1a1a" }}
+        />
+      )}
     </div>
   );
 }

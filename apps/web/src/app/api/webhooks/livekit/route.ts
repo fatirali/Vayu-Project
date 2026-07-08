@@ -43,9 +43,12 @@ export async function POST(req: NextRequest) {
           process.env["LIVEKIT_API_SECRET"]!
         );
 
+        // Audio-only OGG: a 20-min session is ~5-10MB, safely under Supabase's
+        // 50MB free-plan upload cap. Full video recordings (100-300MB) were
+        // failing S3 upload with 413 EntityTooLarge.
         const fileOutput = new EncodedFileOutput({
-          filepath: `${sessionId}.mp4`,
-          fileType: EncodedFileType.MP4,
+          filepath: `${sessionId}.ogg`,
+          fileType: EncodedFileType.OGG,
           output: {
             case: "s3",
             value: new S3Upload({
@@ -59,7 +62,9 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        await egressClient.startRoomCompositeEgress(roomName, fileOutput);
+        await egressClient.startRoomCompositeEgress(roomName, fileOutput, {
+          audioOnly: true,
+        });
         console.log("[livekit webhook] Egress started for room:", roomName);
       } catch (egressErr) {
         console.error("[livekit webhook] Failed to start egress:", egressErr);

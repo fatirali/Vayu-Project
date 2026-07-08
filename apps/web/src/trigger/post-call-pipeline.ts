@@ -137,7 +137,9 @@ export const postCallPipeline = task({
         method: "POST",
         headers: {
           Authorization: `Token ${process.env["DEEPGRAM_API_KEY"]}`,
-          "Content-Type": "audio/webm",
+          "Content-Type": session.recording_path.endsWith(".ogg")
+            ? "audio/ogg"
+            : "video/mp4",
         },
         body: audioBuffer,
       }
