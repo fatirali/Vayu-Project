@@ -44,10 +44,34 @@ type DeepgramResult = {
   };
 };
 
-const FILLER_WORDS = new Set([
-  "um", "uh", "like", "you know", "i mean", "basically",
-  "literally", "actually", "sort of", "kind of",
-]);
+// Single-token fillers. "like"/"actually"/"literally" were removed — they flag
+// legitimate usage ("I'd like to discuss…") far more often than actual filler.
+const FILLER_WORDS = new Set(["um", "uh", "basically"]);
+
+// Two-word filler phrases, matched across consecutive words.
+const FILLER_PHRASES = new Set(["you know", "i mean", "sort of", "kind of"]);
+
+function normalizeWord(w: string): string {
+  return w.toLowerCase().replace(/[^a-z']/g, "");
+}
+
+// Extract fillers from an utterance, matching two-word phrases first.
+function extractFillers(words: { word: string }[]): string[] {
+  const fillers: string[] = [];
+  for (let i = 0; i < words.length; i++) {
+    const w1 = normalizeWord(words[i]!.word);
+    if (i + 1 < words.length) {
+      const phrase = `${w1} ${normalizeWord(words[i + 1]!.word)}`;
+      if (FILLER_PHRASES.has(phrase)) {
+        fillers.push(phrase);
+        i++; // consume both words
+        continue;
+      }
+    }
+    if (FILLER_WORDS.has(w1)) fillers.push(w1);
+  }
+  return fillers;
+}
 
 // ── Pipeline task ────────────────────────────────────────────────────────────
 
@@ -183,9 +207,6 @@ export const postCallPipeline = task({
     }
     if (current) utterances.push(current);
 
-    // Determine speaker mapping (learner_speaker_index from session)
-    const learnerSpeaker = session.learner_speaker_index ?? 0;
-
     // Format timestamp as MM:SS
     function fmt(sec: number) {
       const m = Math.floor(sec / 60);
@@ -193,17 +214,108 @@ export const postCallPipeline = task({
       return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
     }
 
+    // ── Step 5: Claude Sonnet analysis ───────────────────────────────────────
+    // Runs BEFORE transcript labeling: Deepgram's diarized speaker indices are
+    // assigned by voice-detection order (whoever talks first = speaker 0) and
+    // have no relationship to who the learner is. Claude identifies the learner
+    // from conversation content, and that mapping drives all labels + metrics.
+
+    logger.info("Running Claude analysis", { sessionId });
+
+    const scenarios = Array.isArray(session.scenarios) ? session.scenarios[0] : session.scenarios;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const objectives = (scenarios as any)?.objectives ?? [];
+
+    const objectivesText = objectives
+      .map((o: { number: number; text: string; weight: number }) => `${o.number}. ${o.text} (weight: ${o.weight}%)`)
+      .join("\n");
+
+    // Neutral speaker labels — Claude determines which one is the learner
+    const neutralTranscript = utterances
+      .map((u) => {
+        const text = u.words.map((w) => w.punctuated_word ?? w.word).join(" ");
+        return `[${fmt(u.start)}] Speaker ${u.speaker}: ${text}`;
+      })
+      .join("\n");
+
+    const anthropic = new Anthropic({ apiKey: process.env["ANTHROPIC_API_KEY"] });
+
+    const analysisResponse = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1024,
+      messages: [
+        {
+          role: "user",
+          content: `You are evaluating a manager's performance in a high-stakes workplace conversation rehearsal. One speaker is the manager (the learner being evaluated); the other is a trained actor playing the employee.
+
+Objectives the MANAGER must accomplish (weighted):
+${objectivesText}
+
+Transcript (diarized, speaker identity unknown):
+${neutralTranscript}
+
+Tasks:
+1. Determine which speaker number is the MANAGER (the one delivering the message, running the conversation, and pursuing the objectives above). The other speaker is the employee (actor).
+2. For each objective, assess whether the MANAGER covered it: covered, partial, or missed. Treat abbreviations and their expansions as equivalent (e.g. "PIP" = "performance improvement plan", "sev" = "severance").
+3. Provide an overall score from 0-100 for the manager's performance.
+
+Respond in JSON with this exact structure:
+{
+  "learner_speaker": <speaker number of the manager>,
+  "overall_score": <number 0-100>,
+  "objectives": [
+    { "number": <n>, "status": "covered"|"partial"|"missed", "covered_at": "<MM:SS or null>" }
+  ]
+}`,
+        },
+      ],
+    });
+
+    let analysisResult: {
+      learner_speaker?: number;
+      overall_score: number;
+      objectives: Array<{ number: number; status: string; covered_at: string | null }>;
+    };
+
+    try {
+      const content = analysisResponse.content[0];
+      const rawText = content?.type === "text" ? content.text : "{}";
+      // Extract JSON from possible markdown code block
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      analysisResult = JSON.parse(jsonMatch?.[0] ?? "{}");
+    } catch {
+      logger.warn("Failed to parse Claude response, using defaults", { sessionId });
+      analysisResult = {
+        overall_score: 50,
+        objectives: objectives.map((o: { number: number }) => ({
+          number: o.number,
+          status: "partial",
+          covered_at: null,
+        })),
+      };
+    }
+
+    // Resolve learner speaker: Claude's content inference, falling back to any
+    // previously stored index, then 0.
+    const learnerSpeaker =
+      typeof analysisResult.learner_speaker === "number"
+        ? analysisResult.learner_speaker
+        : session.learner_speaker_index ?? 0;
+
+    logger.info("Speaker mapping resolved", { sessionId, learnerSpeaker });
+
+    // ── Step 5b: Build + save transcript with resolved labels ─────────────────
+
     const transcriptRows = utterances.map((u) => {
       const text = u.words.map((w) => w.punctuated_word ?? w.word).join(" ");
-      const fillers = u.words
-        .filter((w) => FILLER_WORDS.has(w.word.toLowerCase()))
-        .map((w) => w.word);
+      const isLearner = u.speaker === learnerSpeaker;
       return {
         session_id: sessionId,
         timestamp: fmt(u.start),
-        speaker: u.speaker === learnerSpeaker ? "learner" : "actor",
+        speaker: isLearner ? "learner" : "actor",
         text,
-        filler_words: fillers,
+        // Fillers are a learner coaching metric — actor lines are not flagged
+        filler_words: isLearner ? extractFillers(u.words) : [],
       };
     });
 
@@ -215,7 +327,7 @@ export const postCallPipeline = task({
       throw new Error(`Failed to save transcript: ${transcriptError.message}`);
     }
 
-    // ── Step 4b: Calculate metrics ────────────────────────────────────────────
+    // ── Step 5c: Calculate metrics (learner-only where relevant) ──────────────
 
     const learnerWords = words.filter((w) => w.speaker === learnerSpeaker);
     const actorWords = words.filter((w) => w.speaker !== learnerSpeaker);
@@ -240,78 +352,10 @@ export const postCallPipeline = task({
         ? parseFloat((learnerDuration / totalDuration).toFixed(3))
         : 0.5;
 
-    const fillerCount = learnerWords.filter((w) =>
-      FILLER_WORDS.has(w.word.toLowerCase())
-    ).length;
-
-    const fullTranscript = transcriptRows
-      .map((r) => `[${r.timestamp}] ${r.speaker === "learner" ? "You" : "Actor"}: ${r.text}`)
-      .join("\n");
-
-    // ── Step 5: Claude Sonnet analysis ───────────────────────────────────────
-
-    logger.info("Running Claude analysis", { sessionId });
-
-    const scenarios = Array.isArray(session.scenarios) ? session.scenarios[0] : session.scenarios;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const objectives = (scenarios as any)?.objectives ?? [];
-
-    const objectivesText = objectives
-      .map((o: { number: number; text: string; weight: number }) => `${o.number}. ${o.text} (weight: ${o.weight}%)`)
-      .join("\n");
-
-    const anthropic = new Anthropic({ apiKey: process.env["ANTHROPIC_API_KEY"] });
-
-    const analysisResponse = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1024,
-      messages: [
-        {
-          role: "user",
-          content: `You are evaluating a manager's performance in a high-stakes workplace conversation rehearsal.
-
-Objectives (weighted):
-${objectivesText}
-
-Transcript:
-${fullTranscript}
-
-For each objective, assess whether it was: covered, partial, or missed.
-Also provide an overall score from 0-100.
-
-Respond in JSON with this exact structure:
-{
-  "overall_score": <number 0-100>,
-  "objectives": [
-    { "number": <n>, "status": "covered"|"partial"|"missed", "covered_at": "<MM:SS or null>" }
-  ]
-}`,
-        },
-      ],
-    });
-
-    let analysisResult: {
-      overall_score: number;
-      objectives: Array<{ number: number; status: string; covered_at: string | null }>;
-    };
-
-    try {
-      const content = analysisResponse.content[0];
-      const rawText = content?.type === "text" ? content.text : "{}";
-      // Extract JSON from possible markdown code block
-      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-      analysisResult = JSON.parse(jsonMatch?.[0] ?? "{}");
-    } catch {
-      logger.warn("Failed to parse Claude response, using defaults", { sessionId });
-      analysisResult = {
-        overall_score: 50,
-        objectives: objectives.map((o: { number: number }) => ({
-          number: o.number,
-          status: "partial",
-          covered_at: null,
-        })),
-      };
-    }
+    // Total filler count across all learner lines (phrases count as one)
+    const fillerCount = transcriptRows
+      .filter((r) => r.speaker === "learner")
+      .reduce((sum, r) => sum + r.filler_words.length, 0);
 
     // ── Step 6: Write session_scores + topic_coverage ─────────────────────────
 
@@ -351,7 +395,7 @@ Respond in JSON with this exact structure:
 
     await supabase
       .from("sessions")
-      .update({ analytics_ready: "true" })
+      .update({ analytics_ready: "true", learner_speaker_index: learnerSpeaker })
       .eq("id", sessionId);
 
     // ── Step 8: Audit log ─────────────────────────────────────────────────────
