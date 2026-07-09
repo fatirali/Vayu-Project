@@ -62,8 +62,8 @@ export function ActorSessionRoom({ sessionId, sceneContext }: Props) {
 
   async function handleFlag(type: "great" | "break" | "note") {
     setFlagging(true);
-    const now = new Date().toTimeString().slice(0, 5);
-    await flagMoment(sessionId, type, now, type === "note" ? flagNote : undefined);
+    // Timestamp is computed server-side from session started_at
+    await flagMoment(sessionId, type, type === "note" ? flagNote : undefined);
     setFlagging(false);
     setShowFlagModal(false);
     setFlagNote("");

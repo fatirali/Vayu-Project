@@ -49,6 +49,12 @@ export default async function AnalyticsPage({ params }: Props) {
         speaker,
         text,
         filler_words
+      ),
+      flagged_moments (
+        id,
+        type,
+        timestamp,
+        note
       )
     `)
     .eq("id", sessionId)
@@ -68,6 +74,10 @@ export default async function AnalyticsPage({ params }: Props) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const transcriptLines: any[] = Array.isArray(session.transcript_lines)
     ? session.transcript_lines.sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp)))
+    : [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const flaggedMoments: any[] = Array.isArray(session.flagged_moments)
+    ? session.flagged_moments.sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp)))
     : [];
 
   // Not ready yet
@@ -246,6 +256,56 @@ export default async function AnalyticsPage({ params }: Props) {
                           </li>
                         );
                       })}
+                  </ul>
+                )}
+              </div>
+
+              {/* Actor feedback: flagged moments */}
+              <div className="bg-[var(--color-paper)] border border-[var(--color-line)] rounded-[var(--radius-lg)] p-4 mt-6">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--color-ink-4)] mb-3">
+                  Actor feedback
+                </h3>
+                {flaggedMoments.length === 0 ? (
+                  <p className="text-xs text-[var(--color-ink-4)]">
+                    No moments were flagged during this session.
+                  </p>
+                ) : (
+                  <ul className="space-y-2.5">
+                    {flaggedMoments.map((fm: {
+                      id: string;
+                      type: "great" | "break" | "note";
+                      timestamp: string;
+                      note: string | null;
+                    }) => (
+                      <li key={fm.id} className="flex gap-2">
+                        <span className="shrink-0 text-[10px] text-[var(--color-ink-4)] tabular-nums mt-0.5 w-8">
+                          {fm.timestamp}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <Pill
+                            label={
+                              fm.type === "great"
+                                ? "★ Great moment"
+                                : fm.type === "break"
+                                ? "Tough moment"
+                                : "Note"
+                            }
+                            variant={
+                              fm.type === "great"
+                                ? "good"
+                                : fm.type === "break"
+                                ? "warn"
+                                : "neutral"
+                            }
+                          />
+                          {fm.note && (
+                            <p className="text-xs text-[var(--color-ink-2)] leading-snug mt-1">
+                              {fm.note}
+                            </p>
+                          )}
+                        </div>
+                      </li>
+                    ))}
                   </ul>
                 )}
               </div>

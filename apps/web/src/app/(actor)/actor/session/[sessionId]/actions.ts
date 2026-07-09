@@ -45,11 +45,29 @@ export async function actorJoinSession(sessionId: string) {
 export async function flagMoment(
   sessionId: string,
   type: "great" | "break" | "note",
-  timestamp: string,
   note?: string
 ) {
   const user = await requireAuth();
   const supabase = await createSupabaseServiceClient();
+
+  // Session-relative timestamp (MM:SS since session start) so flags align
+  // with the transcript timeline. Previously stored wall-clock time of day.
+  const { data: session } = await supabase
+    .from("sessions")
+    .select("started_at")
+    .eq("id", sessionId)
+    .single();
+
+  let timestamp = "00:00";
+  if (session?.started_at) {
+    const elapsedSec = Math.max(
+      0,
+      (Date.now() - new Date(session.started_at).getTime()) / 1000
+    );
+    const m = Math.floor(elapsedSec / 60);
+    const s = Math.floor(elapsedSec % 60);
+    timestamp = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
 
   await supabase.from("flagged_moments").insert({
     session_id: sessionId,
