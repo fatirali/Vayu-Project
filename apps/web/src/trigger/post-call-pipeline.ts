@@ -330,17 +330,23 @@ Respond in JSON with this exact structure:
     // ── Step 5c: Calculate metrics (learner-only where relevant) ──────────────
 
     const learnerWords = words.filter((w) => w.speaker === learnerSpeaker);
-    const actorWords = words.filter((w) => w.speaker !== learnerSpeaker);
 
-    const learnerDuration =
-      learnerWords.length > 0
-        ? learnerWords[learnerWords.length - 1]!.end - learnerWords[0]!.start
-        : 0;
-    const actorDuration =
-      actorWords.length > 0
-        ? actorWords[actorWords.length - 1]!.end - actorWords[0]!.start
-        : 0;
+    // Actual speaking time = sum of utterance durations per speaker.
+    // (Previously measured first-to-last-word SPAN, which includes the other
+    // person's turns and silences — both spans ≈ call length, so talk ratio
+    // always collapsed to ~50:50 and pace was massively understated.)
+    const speakingTime = (isLearner: boolean) =>
+      utterances
+        .filter((u) => (u.speaker === learnerSpeaker) === isLearner)
+        .reduce((sum, u) => sum + (u.end - u.start), 0);
+
+    const learnerDuration = speakingTime(true);
+    const actorDuration = speakingTime(false);
     const totalDuration = learnerDuration + actorDuration;
+
+    // Wall-clock call duration (first word to last word across both speakers)
+    const callDuration =
+      words.length > 0 ? words[words.length - 1]!.end - words[0]!.start : 0;
 
     const paceWpm =
       learnerDuration > 0
@@ -367,7 +373,7 @@ Respond in JSON with this exact structure:
       filler_count: fillerCount,
       pace_wpm: paceWpm,
       talk_ratio: talkRatio,
-      duration_actual: Math.round(totalDuration),
+      duration_actual: Math.round(callDuration),
     }, { onConflict: "session_id" });
 
     if (scoreError) {
