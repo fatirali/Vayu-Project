@@ -78,7 +78,18 @@ export function ActorSessionRoom({ sessionId, sceneContext }: Props) {
   }
 
   if (callEnded) {
-    return <DebriefLoader sessionId={sessionId} />;
+    return (
+      <DebriefLoader
+        sessionId={sessionId}
+        onRejoin={() => {
+          // Back to the pre-join screen so the actor can reconnect with a
+          // fresh LiveKit token (the old one is spent on disconnect).
+          setCreds(null);
+          setJoining(false);
+          setCallEnded(false);
+        }}
+      />
+    );
   }
 
   if (creds) {

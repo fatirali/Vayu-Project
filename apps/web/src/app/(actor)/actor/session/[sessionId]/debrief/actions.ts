@@ -102,7 +102,7 @@ export async function submitDebrief(debriefId: string) {
 
   await supabase.from("audit_log").insert({
     action: "debrief.submitted",
-    target_type: "session",
+    target_type: "debrief",
     target_id: debriefId,
     metadata: { actor_id: user.id },
   });

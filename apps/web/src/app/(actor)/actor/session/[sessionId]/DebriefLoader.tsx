@@ -18,9 +18,14 @@ const STAGES = [
   { at: 150_000, pct: 90, label: "Finalising your debrief…" },
 ];
 
-type Props = { sessionId: string };
+type Props = {
+  sessionId: string;
+  // Escape hatch: LiveKit fires onDisconnected for network drops too, not
+  // just intentional hang-ups — this lets the actor get back into the call.
+  onRejoin?: () => void;
+};
 
-export function DebriefLoader({ sessionId }: Props) {
+export function DebriefLoader({ sessionId, onRejoin }: Props) {
   const router = useRouter();
   const [elapsed, setElapsed] = useState(0);
   const [ready, setReady] = useState(false);
@@ -39,6 +44,7 @@ export function DebriefLoader({ sessionId }: Props) {
   // Poll for debrief readiness
   useEffect(() => {
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
     async function poll() {
       try {
@@ -46,17 +52,20 @@ export function DebriefLoader({ sessionId }: Props) {
         if (!cancelled && isReady) {
           setReady(true);
           // Brief beat at 100% so the completion registers, then navigate
-          setTimeout(() => router.push(`/actor/session/${sessionId}/debrief`), 600);
+          timer = setTimeout(() => router.push(`/actor/session/${sessionId}/debrief`), 600);
           return;
         }
       } catch {
         // Transient network error — keep polling
       }
-      if (!cancelled) setTimeout(poll, POLL_INTERVAL_MS);
+      if (!cancelled) timer = setTimeout(poll, POLL_INTERVAL_MS);
     }
 
     poll();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [sessionId, router]);
 
   const timedOut = elapsed > TIMEOUT_MS && !ready;
@@ -113,6 +122,17 @@ export function DebriefLoader({ sessionId }: Props) {
             <p className="text-[11px] font-mono text-[var(--color-actor)] min-h-[15px]">
               {ready ? "Done — taking you there…" : stage.label}
             </p>
+            {onRejoin && !ready && (
+              <p className="text-[11px] text-[var(--color-ink-4)] mt-4">
+                Disconnected by accident?{" "}
+                <button
+                  onClick={onRejoin}
+                  className="text-[var(--color-actor)] font-medium hover:underline"
+                >
+                  Rejoin the session
+                </button>
+              </p>
+            )}
           </>
         )}
       </div>

@@ -61,6 +61,10 @@ export function DebriefForm({ data }: { data: DebriefData }) {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  // Unflushed edits, keyed by assessment id. Submit flushes these first so a
+  // comment typed just before clicking Submit can't be lost to the debounce.
+  const dirtyComments = useRef<Record<string, string>>({});
+  const dirtyRatings = useRef<Record<string, Rating>>({});
 
   const flashSaved = useCallback(() => {
     setSaving(false);
@@ -71,21 +75,34 @@ export function DebriefForm({ data }: { data: DebriefData }) {
   function setRating(assessmentId: string, rating: Rating) {
     if (readOnly) return;
     setRatings((prev) => ({ ...prev, [assessmentId]: rating }));
+    dirtyRatings.current[assessmentId] = rating;
     setSaving(true);
     saveAssessment(data.debriefId, assessmentId, { actorRating: rating })
-      .then(flashSaved)
+      .then(() => {
+        // Only clear the dirty flag if the value didn't change mid-flight
+        if (dirtyRatings.current[assessmentId] === rating) {
+          delete dirtyRatings.current[assessmentId];
+        }
+        flashSaved();
+      })
       .catch(() => setSaving(false));
   }
 
   function setComment(assessmentId: string, text: string) {
     if (readOnly) return;
     setComments((prev) => ({ ...prev, [assessmentId]: text }));
+    dirtyComments.current[assessmentId] = text;
     // Debounced autosave — one timer per assessment
     clearTimeout(debounceTimers.current[assessmentId]);
     debounceTimers.current[assessmentId] = setTimeout(() => {
       setSaving(true);
       saveAssessment(data.debriefId, assessmentId, { actorComment: text })
-        .then(flashSaved)
+        .then(() => {
+          if (dirtyComments.current[assessmentId] === text) {
+            delete dirtyComments.current[assessmentId];
+          }
+          flashSaved();
+        })
         .catch(() => setSaving(false));
     }, 900);
   }
@@ -105,6 +122,20 @@ export function DebriefForm({ data }: { data: DebriefData }) {
     setSubmitting(true);
     setSubmitError(null);
     try {
+      // Flush unsaved edits before locking the debrief — otherwise a comment
+      // typed within the debounce window would be rejected post-submit.
+      Object.values(debounceTimers.current).forEach(clearTimeout);
+      const pending: Promise<void>[] = [];
+      for (const [id, text] of Object.entries(dirtyComments.current)) {
+        pending.push(saveAssessment(data.debriefId, id, { actorComment: text }));
+      }
+      for (const [id, rating] of Object.entries(dirtyRatings.current)) {
+        pending.push(saveAssessment(data.debriefId, id, { actorRating: rating }));
+      }
+      await Promise.all(pending);
+      dirtyComments.current = {};
+      dirtyRatings.current = {};
+
       await submitDebrief(data.debriefId);
       router.refresh();
     } catch (err) {
