@@ -5,6 +5,7 @@ export * from "./enums.js";
 export * from "./users.js";
 export * from "./scenarios.js";
 export * from "./sessions.js";
+export * from "./debriefs.js";
 export * from "./payments.js";
 export * from "./certifications.js";
 export * from "./cohorts.js";

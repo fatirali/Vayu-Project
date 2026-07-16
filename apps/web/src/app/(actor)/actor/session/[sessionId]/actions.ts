@@ -42,6 +42,25 @@ export async function actorJoinSession(sessionId: string) {
   };
 }
 
+// Polled by the post-call loading overlay. The debrief row is created by the
+// post-call pipeline, so its existence == "AI drafts are ready".
+export async function getDebriefStatus(sessionId: string) {
+  const user = await requireAuth();
+  const supabase = await createSupabaseServiceClient();
+
+  const { data } = await supabase
+    .from("actor_debriefs")
+    .select("id, status")
+    .eq("session_id", sessionId)
+    .eq("actor_id", user.id)
+    .single();
+
+  return {
+    ready: !!data,
+    status: (data?.status as "draft" | "submitted" | undefined) ?? null,
+  };
+}
+
 export async function flagMoment(
   sessionId: string,
   type: "great" | "break" | "note",
@@ -52,11 +71,16 @@ export async function flagMoment(
 
   // Session-relative timestamp (MM:SS since session start) so flags align
   // with the transcript timeline. Previously stored wall-clock time of day.
+  // Scoped to actor_id: the service client bypasses RLS, so without this an
+  // authenticated non-participant could inject flags into any session.
   const { data: session } = await supabase
     .from("sessions")
     .select("started_at")
     .eq("id", sessionId)
+    .eq("actor_id", user.id)
     .single();
+
+  if (!session) throw new Error("Session not found");
 
   let timestamp = "00:00";
   if (session?.started_at) {

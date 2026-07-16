@@ -31,6 +31,24 @@ export default async function ActorDashboardPage() {
     .order("scheduled_at", { ascending: true })
     .limit(10);
 
+  // Unsubmitted debriefs — actor still owes commentary on these sessions
+  const { data: pendingDebriefs } = await supabase
+    .from("actor_debriefs")
+    .select(`
+      id,
+      session_id,
+      created_at,
+      sessions (
+        scheduled_at,
+        scenarios ( title ),
+        learner:users!sessions_learner_id_fkey ( first_name, last_name )
+      )
+    `)
+    .eq("actor_id", user.id)
+    .eq("status", "draft")
+    .order("created_at", { ascending: false })
+    .limit(5);
+
   // Certification count
   const { count: certCount } = await supabase
     .from("actor_certifications")
@@ -119,6 +137,19 @@ export default async function ActorDashboardPage() {
                     </div>
                   </div>
                 </div>
+              )}
+
+              {(pendingDebriefs ?? []).length > 0 && (
+                <section>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-warn)] mb-3">
+                    Debrief pending
+                  </p>
+                  <div className="space-y-2">
+                    {(pendingDebriefs ?? []).map((d) => (
+                      <PendingDebriefCard key={d.id} debrief={d} />
+                    ))}
+                  </div>
+                </section>
               )}
 
               {todaySessions.length > 0 && (
@@ -248,6 +279,40 @@ function SessionCard({ session }: { session: any }) {
           Join →
         </span>
       )}
+    </Link>
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function PendingDebriefCard({ debrief }: { debrief: any }) {
+  const session = Array.isArray(debrief.sessions) ? debrief.sessions[0] : debrief.sessions;
+  const scenario = Array.isArray(session?.scenarios) ? session.scenarios[0] : session?.scenarios;
+  const learner = Array.isArray(session?.learner) ? session.learner[0] : session?.learner;
+
+  const when = session?.scheduled_at
+    ? new Date(session.scheduled_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    : "";
+
+  return (
+    <Link
+      href={`/actor/session/${debrief.session_id}/debrief`}
+      className="flex items-center gap-3 bg-[var(--color-warn-2)] border border-[var(--color-warn)] rounded-[var(--radius-lg)] px-4 py-3 hover:shadow-sm transition-all"
+    >
+      <span className="shrink-0 w-8 h-8 rounded-full bg-[var(--color-warn)] text-white flex items-center justify-center text-sm">
+        ✎
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-[var(--color-ink)] truncate">
+          {scenario?.title ?? "Session"} — debrief awaiting your review
+        </p>
+        <p className="text-xs text-[var(--color-ink-3)]">
+          {learner ? `${learner.first_name} ${learner.last_name}` : "Learner"}
+          {when ? ` · ${when}` : ""} · AI draft ready
+        </p>
+      </div>
+      <span className="shrink-0 text-xs font-semibold text-[var(--color-warn)]">
+        Review →
+      </span>
     </Link>
   );
 }

@@ -3,8 +3,8 @@
 import "@livekit/components-styles";
 import { LiveKitRoom, VideoConference, formatChatMessageLinks } from "@livekit/components-react";
 import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { actorJoinSession, flagMoment } from "./actions";
+import { DebriefLoader } from "./DebriefLoader";
 import type { SceneContext, ArcPhase, PushbackTier } from "./page";
 
 type Props = {
@@ -30,8 +30,8 @@ const TIER_COLORS: Record<number, { bg: string; border: string; text: string; la
 };
 
 export function ActorSessionRoom({ sessionId, sceneContext }: Props) {
-  const router = useRouter();
   const [creds, setCreds] = useState<RoomCreds | null>(null);
+  const [callEnded, setCallEnded] = useState(false);
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [flagging, setFlagging] = useState(false);
@@ -56,9 +56,11 @@ export function ActorSessionRoom({ sessionId, sceneContext }: Props) {
     }
   }
 
+  // Call ended → show the AI-analysis loader instead of leaving. The loader
+  // polls for the debrief and routes to it when the pipeline finishes.
   const handleDisconnected = useCallback(() => {
-    router.push("/actor/dashboard");
-  }, [router]);
+    setCallEnded(true);
+  }, []);
 
   async function handleFlag(type: "great" | "break" | "note") {
     setFlagging(true);
@@ -73,6 +75,10 @@ export function ActorSessionRoom({ sessionId, sceneContext }: Props) {
     await navigator.clipboard.writeText(text);
     setCopied(key);
     setTimeout(() => setCopied(null), 1500);
+  }
+
+  if (callEnded) {
+    return <DebriefLoader sessionId={sessionId} />;
   }
 
   if (creds) {

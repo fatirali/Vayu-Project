@@ -63,6 +63,18 @@ export default async function AnalyticsPage({ params }: Props) {
 
   if (!session) notFound();
 
+  // Actor's submitted debrief — RLS only returns it once status = 'submitted',
+  // so drafts are never learner-visible.
+  const { data: actorDebrief } = await supabase
+    .from("actor_debriefs")
+    .select(`
+      verdict,
+      debrief_assessments ( objective_id, actor_rating, actor_comment )
+    `)
+    .eq("session_id", sessionId)
+    .eq("status", "submitted")
+    .maybeSingle();
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const scenario = (Array.isArray(session.scenarios) ? session.scenarios[0] : session.scenarios) as any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -124,6 +136,29 @@ export default async function AnalyticsPage({ params }: Props) {
     covered: "good",
     partial: "warn",
     missed: "bad",
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const debriefAssessments: any[] = Array.isArray(actorDebrief?.debrief_assessments)
+    ? actorDebrief.debrief_assessments
+    : [];
+
+  const verdictMeta: Record<string, { label: string; variant: "good" | "warn" | "bad" }> = {
+    ready: { label: "Ready", variant: "good" },
+    almost: { label: "Almost", variant: "warn" },
+    not_yet: { label: "Not yet", variant: "bad" },
+  };
+
+  const ratingVariant: Record<string, "good" | "warn" | "bad"> = {
+    green: "good",
+    yellow: "warn",
+    red: "bad",
+  };
+
+  const ratingLabel: Record<string, string> = {
+    green: "Green",
+    yellow: "Yellow",
+    red: "Red",
   };
 
   return (
@@ -309,6 +344,53 @@ export default async function AnalyticsPage({ params }: Props) {
                   </ul>
                 )}
               </div>
+
+              {/* Actor debrief: per-objective commentary + verdict */}
+              {actorDebrief && (
+                <div className="bg-[var(--color-paper)] border border-[var(--color-line)] rounded-[var(--radius-lg)] p-4 mt-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--color-ink-4)]">
+                      Actor debrief
+                    </h3>
+                    {actorDebrief.verdict && verdictMeta[actorDebrief.verdict] && (
+                      <Pill
+                        label={verdictMeta[actorDebrief.verdict]!.label}
+                        variant={verdictMeta[actorDebrief.verdict]!.variant}
+                      />
+                    )}
+                  </div>
+                  <ul className="space-y-3">
+                    {objectives
+                      .sort((a: { number: number }, b: { number: number }) => a.number - b.number)
+                      .map((obj: { id: string; number: number; text: string }) => {
+                        const assessment = debriefAssessments.find(
+                          (d) => d.objective_id === obj.id
+                        );
+                        if (!assessment?.actor_comment && !assessment?.actor_rating) return null;
+                        return (
+                          <li key={obj.id} className="border-b border-[var(--color-line-2)] last:border-0 pb-3 last:pb-0">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <p className="text-[11px] font-medium text-[var(--color-ink-3)] leading-snug">
+                                {obj.number}. {obj.text}
+                              </p>
+                              {assessment.actor_rating && (
+                                <Pill
+                                  label={ratingLabel[assessment.actor_rating] ?? assessment.actor_rating}
+                                  variant={ratingVariant[assessment.actor_rating] ?? "neutral"}
+                                />
+                              )}
+                            </div>
+                            {assessment.actor_comment && (
+                              <p className="text-xs text-[var(--color-ink-2)] leading-snug">
+                                {assessment.actor_comment}
+                              </p>
+                            )}
+                          </li>
+                        );
+                      })}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
 

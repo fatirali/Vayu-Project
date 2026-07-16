@@ -87,3 +87,20 @@ export const cohortLearnerStatusEnum = pgEnum("cohort_learner_status", [
   "at_risk",
   "done",
 ]);
+
+export const debriefRatingEnum = pgEnum("debrief_rating", [
+  "red",
+  "yellow",
+  "green",
+]);
+
+export const debriefVerdictEnum = pgEnum("debrief_verdict", [
+  "ready",
+  "almost",
+  "not_yet",
+]);
+
+export const debriefStatusEnum = pgEnum("debrief_status", [
+  "draft",
+  "submitted",
+]);
