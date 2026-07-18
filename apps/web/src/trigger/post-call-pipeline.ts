@@ -73,6 +73,75 @@ function extractFillers(words: { word: string }[]): string[] {
   return fillers;
 }
 
+// ── Actor debrief creation ───────────────────────────────────────────────────
+// Creates the debrief shell + one assessment row per objective. Idempotent:
+// if a debrief already exists for the session (pipeline re-run), it's left
+// untouched so actor edits are never clobbered.
+
+async function createActorDebrief(
+  supabase: ReturnType<typeof getServiceClient>,
+  args: {
+    sessionId: string;
+    actorId: string;
+    objectives: Array<{ id: string; number: number }>;
+    // null = AI unavailable (no recording / drafting failed)
+    drafts: Array<{
+      number: number;
+      rating: "red" | "yellow" | "green" | null;
+      note: string | null;
+    }> | null;
+  }
+) {
+  const { data: existing } = await supabase
+    .from("actor_debriefs")
+    .select("id")
+    .eq("session_id", args.sessionId)
+    .single();
+
+  if (existing) {
+    logger.warn("Debrief already exists — skipping creation", {
+      sessionId: args.sessionId,
+    });
+    return;
+  }
+
+  const { data: debrief, error: debriefError } = await supabase
+    .from("actor_debriefs")
+    .insert({
+      session_id: args.sessionId,
+      actor_id: args.actorId,
+      status: "draft",
+    })
+    .select("id")
+    .single();
+
+  if (debriefError || !debrief) {
+    throw new Error(`Failed to create actor debrief: ${debriefError?.message}`);
+  }
+
+  const rows = args.objectives.map((obj) => {
+    const draft = args.drafts?.find((d) => d.number === obj.number);
+    return {
+      debrief_id: debrief.id,
+      objective_id: obj.id,
+      ai_rating: draft?.rating ?? null,
+      ai_note: draft?.note ?? null,
+      // Actor rating starts as the AI's suggestion; actor can override
+      actor_rating: draft?.rating ?? null,
+      actor_comment: null,
+    };
+  });
+
+  if (rows.length > 0) {
+    const { error: assessError } = await supabase
+      .from("debrief_assessments")
+      .insert(rows);
+    if (assessError) {
+      throw new Error(`Failed to create assessments: ${assessError.message}`);
+    }
+  }
+}
+
 // ── Pipeline task ────────────────────────────────────────────────────────────
 
 export const postCallPipeline = task({
@@ -126,6 +195,15 @@ export const postCallPipeline = task({
 
     if (!session.recording_path) {
       logger.warn("No recording path — skipping transcription", { sessionId });
+      // Still create an empty debrief so the actor can assess manually
+      // (assessment cards will show "AI draft unavailable").
+      await createActorDebrief(supabase, {
+        sessionId,
+        actorId: session.actor_id,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        objectives: ((Array.isArray(session.scenarios) ? session.scenarios[0] : session.scenarios) as any)?.objectives ?? [],
+        drafts: null,
+      });
       return { skipped: true, reason: "no_recording" };
     }
 
@@ -396,6 +474,92 @@ Respond in JSON with this exact structure:
     if (coverageRows.length > 0) {
       await supabase.from("topic_coverage").insert(coverageRows);
     }
+
+    // ── Step 6b: Draft actor debrief ──────────────────────────────────────────
+    // Ratings map directly from topic coverage (covered→green, partial→yellow,
+    // missed→red) so the actor and learner views never disagree. One extra
+    // Claude call drafts actor-facing notes; if it fails, the debrief is still
+    // created with ratings but no notes (actor assesses manually).
+
+    logger.info("Drafting actor debrief", { sessionId });
+
+    const statusToRating: Record<string, "red" | "yellow" | "green"> = {
+      covered: "green",
+      partial: "yellow",
+      missed: "red",
+    };
+
+    let aiNotes: Map<number, string> = new Map();
+    try {
+      const { data: flags } = await supabase
+        .from("flagged_moments")
+        .select("type, timestamp, note")
+        .eq("session_id", sessionId);
+
+      const flagsText =
+        (flags ?? [])
+          .map((f) => `[${f.timestamp}] ${f.type}${f.note ? `: ${f.note}` : ""}`)
+          .join("\n") || "(none)";
+
+      const coverageText = analysisResult.objectives
+        .map((o) => {
+          const dbObj = objectives.find((x: { number: number }) => x.number === o.number);
+          return `${o.number}. ${dbObj?.text ?? ""} — ${o.status}${o.covered_at ? ` at ${o.covered_at}` : ""}`;
+        })
+        .join("\n");
+
+      const labeledTranscript = transcriptRows
+        .map((r) => `[${r.timestamp}] ${r.speaker === "learner" ? "MANAGER" : "ACTOR"}: ${r.text}`)
+        .join("\n");
+
+      const noteResponse = await anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1024,
+        messages: [
+          {
+            role: "user",
+            content: `You are drafting debrief notes for a trained ACTOR who just played the employee in a manager's rehearsal of a difficult workplace conversation. The actor will review your notes, agree or disagree, and add their own commentary.
+
+Objectives the manager had to accomplish, with the AI coverage assessment:
+${coverageText}
+
+Moments the actor flagged live during the call:
+${flagsText}
+
+Transcript:
+${labeledTranscript}
+
+For each objective, write ONE note (max 2 sentences) addressed to the actor. Reference specific moments or quotes with timestamps where possible. Be concrete about what the manager did or failed to do — the actor was in the room and will spot vague filler.
+
+Respond in JSON only:
+{ "notes": [ { "number": <objective number>, "note": "<text>" } ] }`,
+          },
+        ],
+      });
+
+      const noteContent = noteResponse.content[0];
+      const noteRaw = noteContent?.type === "text" ? noteContent.text : "{}";
+      const noteJson = JSON.parse(noteRaw.match(/\{[\s\S]*\}/)?.[0] ?? "{}") as {
+        notes?: Array<{ number: number; note: string }>;
+      };
+      aiNotes = new Map((noteJson.notes ?? []).map((n) => [n.number, n.note]));
+    } catch (err) {
+      logger.warn("Actor note drafting failed — creating debrief without notes", {
+        sessionId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+
+    await createActorDebrief(supabase, {
+      sessionId,
+      actorId: session.actor_id,
+      objectives,
+      drafts: analysisResult.objectives.map((o) => ({
+        number: o.number,
+        rating: statusToRating[o.status] ?? null,
+        note: aiNotes.get(o.number) ?? null,
+      })),
+    });
 
     // ── Step 7: Mark analytics ready ─────────────────────────────────────────
 
