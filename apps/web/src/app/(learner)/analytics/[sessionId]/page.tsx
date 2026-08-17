@@ -79,6 +79,13 @@ export default async function AnalyticsPage({ params }: Props) {
     .eq("status", "submitted")
     .maybeSingle();
 
+  // Learner's own pre-feedback reflection (captured on /reflect). Read-only here.
+  const { data: reflection } = await supabase
+    .from("session_reflections")
+    .select("feel, hardest, went_well, differently")
+    .eq("session_id", sessionId)
+    .maybeSingle();
+
   // Actor's display name for the feedback card attribution. RLS permits
   // learners to read approved actors' profiles (booking-page policy).
   let actorFirstName = "Your actor";
@@ -377,6 +384,45 @@ export default async function AnalyticsPage({ params }: Props) {
     </div>
   );
 
+  const reflectionEntries = [
+    { label: "How it felt", value: reflection?.feel },
+    { label: "Hardest moment", value: reflection?.hardest },
+    { label: "Went better than expected", value: reflection?.went_well },
+    { label: "Next time, differently", value: reflection?.differently },
+  ].filter((entry) => entry.value && String(entry.value).trim());
+
+  const reflectionTab = (
+    <div className="bg-[var(--color-paper)] border border-[var(--color-line)] rounded-[var(--radius-lg)] overflow-hidden">
+      <div className="px-4 py-3 border-b border-[var(--color-line-2)]">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--color-ink-4)]">
+          Your reflection
+        </h3>
+        <p className="text-[11px] text-[var(--color-ink-4)] mt-0.5">
+          What you jotted right after the call, before you saw any feedback —
+          compare it against the Overview.
+        </p>
+      </div>
+      {reflectionEntries.length === 0 ? (
+        <p className="px-4 py-6 text-xs text-[var(--color-ink-4)] text-center">
+          You didn&apos;t add reflections for this session.
+        </p>
+      ) : (
+        <div className="divide-y divide-[var(--color-line-2)]">
+          {reflectionEntries.map((entry) => (
+            <div key={entry.label} className="px-4 py-3">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-ink-4)]">
+                {entry.label}
+              </div>
+              <p className="text-[13px] text-[var(--color-ink-2)] mt-1 whitespace-pre-wrap">
+                {entry.value}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="flex flex-col h-full">
       <header className="flex items-center px-6 h-14 border-b border-[var(--color-line)] bg-[var(--color-paper)] shrink-0">
@@ -391,7 +437,11 @@ export default async function AnalyticsPage({ params }: Props) {
 
       <div className="flex-1 overflow-y-auto px-6 py-6">
         <div className="max-w-4xl mx-auto">
-          <AnalyticsTabs overview={overviewTab} transcript={transcriptTab} />
+          <AnalyticsTabs
+            overview={overviewTab}
+            reflection={reflectionTab}
+            transcript={transcriptTab}
+          />
         </div>
       </div>
     </div>

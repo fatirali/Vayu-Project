@@ -2,13 +2,16 @@
 
 import { useState, type ReactNode } from "react";
 
+type Tab = "overview" | "reflection" | "transcript";
+
 type Props = {
   overview: ReactNode;
+  reflection: ReactNode;
   transcript: ReactNode;
 };
 
-export function AnalyticsTabs({ overview, transcript }: Props) {
-  const [tab, setTab] = useState<"overview" | "transcript">("overview");
+export function AnalyticsTabs({ overview, reflection, transcript }: Props) {
+  const [tab, setTab] = useState<Tab>("overview");
 
   return (
     <div>
@@ -16,6 +19,7 @@ export function AnalyticsTabs({ overview, transcript }: Props) {
         {(
           [
             ["overview", "Overview"],
+            ["reflection", "My reflection"],
             ["transcript", "Transcript"],
           ] as const
         ).map(([key, label]) => (
@@ -33,6 +37,7 @@ export function AnalyticsTabs({ overview, transcript }: Props) {
         ))}
       </div>
       <div className={tab === "overview" ? "" : "hidden"}>{overview}</div>
+      <div className={tab === "reflection" ? "" : "hidden"}>{reflection}</div>
       <div className={tab === "transcript" ? "" : "hidden"}>{transcript}</div>
     </div>
   );

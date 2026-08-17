@@ -19,6 +19,7 @@ import {
   flaggedMoments,
   coachConversations,
 } from "./sessions.js";
+import { sessionReflections } from "./reflections.js";
 import { payouts, sessionPayments } from "./payments.js";
 import { actorCertifications } from "./certifications.js";
 import { cohorts, cohortScenarios, cohortLearners } from "./cohorts.js";
@@ -123,6 +124,10 @@ export const sessionsRelations = relations(sessions, ({ one, many }) => ({
   payment: one(sessionPayments, {
     fields: [sessions.id],
     references: [sessionPayments.sessionId],
+  }),
+  reflection: one(sessionReflections, {
+    fields: [sessions.id],
+    references: [sessionReflections.sessionId],
   }),
 }));
 

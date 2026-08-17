@@ -44,7 +44,8 @@ export function LiveSessionRoom({ sessionId }: Props) {
     if (ended) return;
     setEnded(true);
     await endSession(sessionId);
-    router.push(`/analytics/${sessionId}`);
+    // Reflection first (captured before feedback); it forwards to analytics.
+    router.push(`/reflect/${sessionId}`);
   }, [ended, sessionId, router]);
 
   if (ended) {
@@ -53,7 +54,7 @@ export function LiveSessionRoom({ sessionId }: Props) {
         <div className="text-center">
           <p className="text-white text-sm mb-2">Session ended</p>
           <p className="text-[var(--color-ink-4)] text-xs">
-            Redirecting to your analytics…
+            Taking you to your reflection…
           </p>
         </div>
       </div>
